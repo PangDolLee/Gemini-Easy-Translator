@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       const prettyModelName = modelNames[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
-      showResult(request.result, lastMouseX, lastMouseY, title, true); // true = HTML 렌더링 허용
+      showResult(request.result, lastMouseX, lastMouseY, title, true); 
     }
   }
 });
@@ -72,11 +72,14 @@ document.addEventListener('mouseup', (e) => {
   if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) return;
   
   setTimeout(() => {
+    const activeEl = document.activeElement;
+    const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable;
+    if (isInput) return;
+
     const selection = window.getSelection();
     selectedText = selection.toString().trim();
     
     if (selectedText.length > 0 && selection.rangeCount > 0) {
-      // 선택 영역의 HTML 구조 복사
       const range = selection.getRangeAt(0);
       const clonedSelection = range.cloneContents();
       const div = document.createElement('div');
@@ -200,7 +203,6 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
     copyBtn.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      // HTML 렌더링된 요소의 순수 텍스트만 추출하여 클립보드에 복사
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = textOrHTML;
       navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText || textOrHTML).then(() => {
@@ -257,7 +259,6 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
   const content = document.createElement('div');
   content.id = 'gemini-translate-result-content';
   
-  // HTML 서식 지원 (백그라운드에서 HTML 마크업으로 넘어온 경우)
   if (isHTML) {
     content.innerHTML = textOrHTML;
   } else {
@@ -362,7 +363,6 @@ function translateText(x, y, btnElement) {
     if (btnElement) btnElement.textContent = '번역 중...';
   }
 
-  // 텍스트 대신 HTML 구조(selectedHTML)를 백그라운드로 전송
   chrome.runtime.sendMessage({ action: "translate", text: selectedHTML, targetLang: currentTargetLang }, (response) => {
     if (chrome.runtime.lastError) {
       if (useNewTab && newWin) {
@@ -395,7 +395,7 @@ function translateText(x, y, btnElement) {
           <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
         `;
       } else {
-        showResult(response.result, x, y, title, true); // true = HTML 렌더링 허용
+        showResult(response.result, x, y, title, true); 
       }
     }
   });

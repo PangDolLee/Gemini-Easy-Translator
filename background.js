@@ -1,15 +1,48 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: "gemini-translate",
-    title: "Gemini로 번역하기",
+    id: "gemini-translate-text",
+    title: "Gemini로 텍스트 번역",
     contexts: ["selection"]
+  });
+  chrome.contextMenus.create({
+    id: "gemini-translate-image",
+    title: "Gemini로 이미지 번역",
+    contexts: ["image"]
   });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "gemini-translate") {
+async function fetchImageAsBase64(url) {
+  if (url.startsWith('data:')) {
+    const [header, data] = url.split(',');
+    const mimeType = header.split(':')[1].split(';')[0];
+    return { mimeType, data };
+  }
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64data = reader.result;
+      const [header, data] = base64data.split(',');
+      resolve({ mimeType: blob.type || 'image/jpeg', data });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "gemini-translate-text") {
     chrome.tabs.sendMessage(tab.id, { action: "showLoading" });
     processTranslation(info.selectionText, tab.id, true, null, info.pageUrl || tab.url);
+  } else if (info.menuItemId === "gemini-translate-image") {
+    chrome.tabs.sendMessage(tab.id, { action: "showLoading" });
+    try {
+      const imageData = await fetchImageAsBase64(info.srcUrl);
+      processImageTranslation(imageData, tab.id, info.pageUrl || tab.url);
+    } catch (error) {
+      chrome.tabs.sendMessage(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
+    }
   }
 });
 
@@ -38,7 +71,6 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
     }
 
     const model = data.modelSelect || 'gemini-3.5-flash';
-    
     const targetLang = requestedLang || data.targetLang || '한국어';
     
     const presetPrompts = {
@@ -61,7 +93,6 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
-    // HTML 구조 유지를 위한 엄격한 지시문 추가
     const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${targetLang}.
 CRITICAL RULES:
 1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
@@ -87,13 +118,10 @@ ${textToTranslate}
         sendResult({ error: resultData.error.message });
       } else {
         let translatedText = resultData.candidates[0].content.parts[0].text;
-        
-        // Gemini가 불필요하게 ```html 마크다운 블록을 추가하여 응답한 경우 제거
         translatedText = translatedText.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
 
         sendResult({ result: translatedText, model: model, lang: targetLang });
 
-        // 기록 저장을 위해 HTML 태그를 제거한 순수 텍스트만 추출
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = textToTranslate;
         const pureOriginalText = tempDiv.textContent || tempDiv.innerText || textToTranslate;
@@ -115,6 +143,68 @@ ${textToTranslate}
       }
     } catch (error) {
       sendResult({ error: error.toString() });
+    }
+  });
+}
+
+function processImageTranslation(imageData, tabId, sourceUrl) {
+  chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt'], async (data) => {
+    if (!data.apiKey) {
+      chrome.tabs.sendMessage(tabId, { action: "showResult", error: "확장 프로그램 팝업에서 API 키를 먼저 설정하세요." });
+      return;
+    }
+
+    const model = data.modelSelect || 'gemini-3.5-flash';
+    const targetLang = data.targetLang || '한국어';
+    const customPrompt = data.customPrompt ? `\nAdditional Instructions: ${data.customPrompt}` : '';
+
+    const prompt = `You are a professional translator and OCR expert. Extract all readable text from the provided image and translate it into ${targetLang}.
+CRITICAL RULES:
+1. Output ONLY the translated text.
+2. Do NOT include the original text unless it's impossible to translate (like proper nouns).
+3. Maintain the logical reading order and paragraph structure of the original image.${customPrompt}`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: imageData.mimeType,
+                  data: imageData.data
+                }
+              }
+            ]
+          }]
+        })
+      });
+
+      const resultData = await response.json();
+      
+      if (resultData.error) {
+        chrome.tabs.sendMessage(tabId, { action: "showResult", error: resultData.error.message });
+      } else {
+        const translatedText = resultData.candidates[0].content.parts[0].text;
+        chrome.tabs.sendMessage(tabId, { action: "showResult", result: translatedText, model: model, lang: targetLang, isHTML: false });
+        
+        chrome.storage.local.get(['translationHistory'], (histData) => {
+          let history = histData.translationHistory || [];
+          history.unshift({
+            original: "[이미지에서 텍스트 추출 됨]",
+            translated: translatedText,
+            timestamp: new Date().getTime(),
+            url: sourceUrl
+          });
+          if (history.length > 50) history = history.slice(0, 50);
+          chrome.storage.local.set({ translationHistory: history });
+        });
+      }
+    } catch (error) {
+      chrome.tabs.sendMessage(tabId, { action: "showResult", error: error.toString() });
     }
   });
 }
