@@ -22,7 +22,6 @@
   --btn-text: #f0f9ff;
 }
 
-/* 툴팁 래퍼 패널 */
 #gemini-translate-btn-wrapper {
   all: initial;
   position: absolute !important;
@@ -38,41 +37,98 @@
   box-sizing: border-box !important;
 }
 
-/* 언어 선택 셀렉트 박스 디자인 수정 */
-#gemini-translate-lang-select {
+/* 커스텀 드롭다운 영역 설정 */
+#gemini-translate-custom-select {
   all: initial;
+  position: relative !important;
   font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
+  box-sizing: border-box !important;
+}
+
+/* 선택 값 트리거 버튼 */
+#gemini-translate-select-trigger {
+  all: initial;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-family: inherit !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   color: var(--text-main) !important;
   background-color: var(--bg-color) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 4px !important;
-  padding: 4px 24px 4px 8px !important; /* 오른쪽 화살표 공간 확보 */
+  padding: 4px 8px !important;
   cursor: pointer !important;
   line-height: 1.2 !important;
   box-sizing: border-box !important;
+  min-width: 72px !important;
   transition: background-color 0.2s, border-color 0.2s !important;
-
-  /* 브라우저 기본 화살표 제거 및 커서 다운 이미지 주입 */
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 6px center !important;
-  background-size: 12px !important;
 }
 
-#gemini-translate-lang-select:hover {
+#gemini-translate-select-trigger:hover {
   background-color: var(--border-color) !important;
 }
 
-/* 다크 테마 시 셀렉트 박스 화살표 색상 변경 */
-#gemini-translate-btn-wrapper[data-theme="dark"] #gemini-translate-lang-select {
+#gemini-translate-select-arrow {
+  all: initial;
+  display: inline-block !important;
+  width: 12px !important;
+  height: 12px !important;
+  margin-left: 6px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+}
+
+#gemini-translate-btn-wrapper[data-theme="dark"] #gemini-translate-select-arrow {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8aaab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 
-/* 내부 번역 버튼 */
+/* 드롭다운 리스트 UI */
+#gemini-translate-options-list {
+  all: initial;
+  display: none;
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  min-width: 80px !important;
+  background-color: var(--panel-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  z-index: 9147483648 !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  list-style: none !important;
+  box-sizing: border-box !important;
+}
+
+#gemini-translate-options-list li {
+  all: initial;
+  display: block !important;
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  color: var(--text-main) !important;
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.2s !important;
+}
+
+#gemini-translate-options-list li:hover {
+  background-color: var(--bg-color) !important;
+}
+
+#gemini-translate-options-list li.selected {
+  color: var(--status-color) !important;
+  font-weight: 600 !important;
+  background-color: var(--bg-color) !important;
+}
+
 #gemini-translate-btn-inner {
   all: initial;
   background-color: var(--btn-bg) !important;
@@ -93,7 +149,6 @@
   background-color: var(--btn-hover) !important;
 }
 
-/* 번역 결과창 */
 #gemini-translate-result-container {
   all: initial;
   position: absolute !important;

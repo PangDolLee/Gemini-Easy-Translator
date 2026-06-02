@@ -5,6 +5,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
 let currentTargetLang = '한국어';
+let isUIInteraction = false; // UI 내부 클릭 여부를 추적하는 플래그
 
 const modelNames = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
@@ -52,8 +53,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// 마우스 누름(캡처링 단계): UI 컨트롤 여부 식별
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) {
+    isUIInteraction = true;
+  } else {
+    isUIInteraction = false;
+    if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
+  }
+}, true);
+
+// 마우스 뗌: 일반 텍스트 선택일 때만 팝업 노출
 document.addEventListener('mouseup', (e) => {
+  if (isUIInteraction) {
+    isUIInteraction = false; // UI 조작 완료 후 초기화
+    return;
+  }
+  
   if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) return;
+  
   setTimeout(() => {
     selectedText = window.getSelection().toString().trim();
     if (selectedText.length > 0) {
@@ -62,12 +80,6 @@ document.addEventListener('mouseup', (e) => {
       if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
     }
   }, 10);
-});
-
-document.addEventListener('mousedown', (e) => {
-  if (!e.target.closest('#gemini-translate-btn-wrapper') && !e.target.closest('#gemini-translate-result-container')) {
-    if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
-  }
 });
 
 function showButton(x, y) {
@@ -79,24 +91,60 @@ function showButton(x, y) {
   translateWrapper.style.left = `${x + 10}px`;
   translateWrapper.style.top = `${y + 10}px`;
   
-  // 언어 선택 셀렉트 박스 생성
-  const langSelect = document.createElement('select');
-  langSelect.id = 'gemini-translate-lang-select';
+  const customSelect = document.createElement('div');
+  customSelect.id = 'gemini-translate-custom-select';
+
+  const selectTrigger = document.createElement('div');
+  selectTrigger.id = 'gemini-translate-select-trigger';
+  
+  const triggerText = document.createTextNode(currentTargetLang);
+  selectTrigger.appendChild(triggerText);
+  
+  const arrowIcon = document.createElement('span');
+  arrowIcon.id = 'gemini-translate-select-arrow';
+  selectTrigger.appendChild(arrowIcon);
+
+  const optionsList = document.createElement('ul');
+  optionsList.id = 'gemini-translate-options-list';
+  
   const langs = ['한국어', '영어', '일본어', '중국어'];
   langs.forEach(lang => {
-    const opt = document.createElement('option');
-    opt.value = lang;
-    opt.textContent = lang;
-    if (lang === currentTargetLang) opt.selected = true;
-    langSelect.appendChild(opt);
+    const li = document.createElement('li');
+    li.textContent = lang;
+    if (lang === currentTargetLang) li.classList.add('selected');
+    
+    li.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      currentTargetLang = lang;
+      chrome.storage.local.set({ targetLang: currentTargetLang });
+      
+      triggerText.nodeValue = lang;
+      optionsList.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
+      li.classList.add('selected');
+      
+      optionsList.style.display = 'none';
+    });
+    optionsList.appendChild(li);
   });
 
-  langSelect.addEventListener('change', (e) => {
-    currentTargetLang = e.target.value;
-    chrome.storage.local.set({ targetLang: currentTargetLang });
+  selectTrigger.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const isVisible = optionsList.style.display === 'block';
+    optionsList.style.display = isVisible ? 'none' : 'block';
   });
 
-  // 번역 버튼 생성
+  document.addEventListener('mousedown', function closeDropdown(e) {
+    if (customSelect && !customSelect.contains(e.target)) {
+      optionsList.style.display = 'none';
+    }
+  });
+
+  customSelect.appendChild(selectTrigger);
+  customSelect.appendChild(optionsList);
+
   const translateBtnInner = document.createElement('button');
   translateBtnInner.id = 'gemini-translate-btn-inner';
   translateBtnInner.textContent = '번역';
@@ -107,7 +155,7 @@ function showButton(x, y) {
     translateText(x, y, translateBtnInner);
   });
 
-  translateWrapper.appendChild(langSelect);
+  translateWrapper.appendChild(customSelect);
   translateWrapper.appendChild(translateBtnInner);
   document.body.appendChild(translateWrapper);
 }
@@ -291,7 +339,6 @@ function translateText(x, y, btnElement) {
     if (btnElement) btnElement.textContent = '번역 중...';
   }
 
-  // targetLang을 런타임 메시지에 포함시켜 전송
   chrome.runtime.sendMessage({ action: "translate", text: selectedText, targetLang: currentTargetLang }, (response) => {
     if (chrome.runtime.lastError) {
       if (useNewTab && newWin) {
