@@ -5,14 +5,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const customPromptInput = document.getElementById('customPrompt');
   const statusDiv = document.getElementById('status');
   
-  // 사용자 사전 관련 요소
   const dictKeyInput = document.getElementById('dictKey');
   const dictValInput = document.getElementById('dictVal');
   const addDictBtn = document.getElementById('addDictBtn');
   const dictList = document.getElementById('dictList');
+  
+  // CSV 업로드 관련 요소
+  const csvFileInput = document.getElementById('csvFileInput');
+  const uploadCsvBtn = document.getElementById('uploadCsvBtn');
+
   let userDictionary = [];
 
-  // 데이터 불러오기
   chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'customPrompt', 'userDict'], (result) => {
     if (result.apiKey) apiKeyInput.value = result.apiKey;
     if (result.modelSelect) modelSelect.value = result.modelSelect;
@@ -24,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 일반 설정 저장
   function autoSave() {
     chrome.storage.local.set({ 
       apiKey: apiKeyInput.value.trim(), 
@@ -42,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
   targetLangSelect.addEventListener('change', autoSave);
   customPromptInput.addEventListener('input', autoSave);
 
-  // --- 사용자 사전 로직 ---
   function saveDictionary() {
     chrome.storage.local.set({ userDict: userDictionary }, () => {
       statusDiv.textContent = '사전 저장됨';
@@ -61,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dictList.appendChild(li);
     });
 
-    // 삭제 버튼 이벤트 연결
     document.querySelectorAll('.delete-dict-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = e.target.getAttribute('data-index');
@@ -76,13 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const key = dictKeyInput.value.trim();
     const val = dictValInput.value.trim();
     if (key && val) {
-      // 중복 체크 및 추가
-      const existingIndex = userDictionary.findIndex(item => item.key === key);
-      if (existingIndex > -1) {
-        userDictionary[existingIndex].val = val; // 기존 단어 덮어쓰기
-      } else {
-        userDictionary.push({ key, val });
-      }
+      addOrUpdateDictionary(key, val);
       dictKeyInput.value = '';
       dictValInput.value = '';
       renderDictList();
@@ -90,7 +84,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- 직접 입력 번역 로직 ---
+  function addOrUpdateDictionary(key, val) {
+    const existingIndex = userDictionary.findIndex(item => item.key === key);
+    if (existingIndex > -1) {
+      userDictionary[existingIndex].val = val;
+    } else {
+      userDictionary.push({ key, val });
+    }
+  }
+
+  // CSV 파일 업로드 이벤트
+  uploadCsvBtn.addEventListener('click', () => {
+    const file = csvFileInput.files[0];
+    if (!file) {
+      statusDiv.textContent = '파일을 선택하세요';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const text = e.target.result;
+      const lines = text.split('\n');
+      
+      lines.forEach(line => {
+        // 쉼표로 분리 (간단한 CSV 파싱)
+        const parts = line.split(',');
+        if (parts.length >= 2) {
+          const key = parts[0].trim();
+          const val = parts[1].trim();
+          if (key && val) {
+            addOrUpdateDictionary(key, val);
+          }
+        }
+      });
+
+      renderDictList();
+      saveDictionary();
+      csvFileInput.value = ''; // 입력 필드 초기화
+      statusDiv.textContent = 'CSV 적용 완료';
+    };
+    reader.onerror = function() {
+      statusDiv.textContent = '파일 읽기 오류';
+    };
+    reader.readAsText(file);
+  });
+
   const translateBtn = document.getElementById('translateBtn');
   const inputText = document.getElementById('inputText');
   const translateResult = document.getElementById('translateResult');
