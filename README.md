@@ -19,6 +19,9 @@ A lightweight and powerful Chrome Extension that translates text on any webpage 
 To use this extension, you need a valid **Gemini API Key**. 
 You can get one for free from [Google AI Studio](https://aistudio.google.com/).
 
+If you frequently use the translation feature, it is recommended to set up a paid API plan.
+When using the free plan, there may be token limitations, which could cause issues when using the translation function.
+
 ## Installation
 
 Since this extension is not published on the Chrome Web Store, you need to load it manually via Developer Mode.
