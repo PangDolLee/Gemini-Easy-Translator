@@ -15,74 +15,80 @@
       --status-color: #007bff; --radius-md: 8px; --radius-sm: 4px;
       --font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif;
     }
-    body { width: 320px; margin: 0; padding: 16px; font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-main); }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+    
+    :root[data-theme="dark"] {
+      --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
+      --border-color: #343536; --input-bg: #1a1a1b; --input-focus-border: #818384;
+      --primary-btn-bg: #d7dadc; --primary-btn-hover: #ffffff; --primary-btn-text: #1a1a1b;
+      --status-color: #4da3ff;
+    }
+
+    body { width: 320px; margin: 0; padding: 16px; font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-main); transition: background-color 0.2s, color 0.2s; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
     .header h4 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main); }
     #status { font-size: 12px; color: var(--status-color); font-weight: 500; height: 14px; }
-    .section-title { font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0 0 12px 0; }
+    
+    .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 16px; }
+    .tab-btn { flex: 1; background: transparent; border: none; padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; border-radius: 0; }
+    .tab-btn.active { color: var(--status-color); border-bottom: 2px solid var(--status-color); }
+    .tab-btn:hover { background-color: var(--input-bg); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .section-title { font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0; }
     label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--text-sub); }
-    input[type="password"], input[type="text"], select, textarea { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px 12px; font-family: var(--font-family); font-size: 13px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--panel-color); transition: border-color 0.2s; }
+    input[type="password"], input[type="text"], select, textarea { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px 12px; font-family: var(--font-family); font-size: 13px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--panel-color); color: var(--text-main); transition: border-color 0.2s, background-color 0.2s, color 0.2s; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--input-focus-border); }
     select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; padding-right: 36px; }
     textarea { resize: none; }
-    hr { border: 0; border-top: 1px solid var(--border-color); margin: 16px -16px; }
-    .container { background-color: var(--panel-color); padding: 16px; border-radius: var(--radius-md); box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-top: 16px; }
+    .container { background-color: var(--panel-color); padding: 16px; border-radius: var(--radius-md); box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 16px; transition: background-color 0.2s; }
     
-    button { width: 100%; padding: 12px; font-family: var(--font-family); font-size: 14px; font-weight: 600; color: var(--primary-btn-text); background-color: var(--primary-btn-bg); border: none; border-radius: var(--radius-md); cursor: pointer; transition: background-color 0.2s; }
-    button:hover { background-color: var(--primary-btn-hover); }
-    button#copyPopupBtn { padding: 8px; margin-top: 8px; font-size: 12px; color: var(--text-sub); background-color: var(--panel-color); border: 1px solid var(--border-color); display: none; }
-    button#copyPopupBtn:hover { background-color: var(--input-bg); }
+    button.primary-btn { width: 100%; padding: 12px; font-family: var(--font-family); font-size: 14px; font-weight: 600; color: var(--primary-btn-text); background-color: var(--primary-btn-bg); border: none; border-radius: var(--radius-md); cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+    button.primary-btn:hover { background-color: var(--primary-btn-hover); }
     
-    #translateResult { margin-top: 12px; padding: 8px; font-size: 13px; line-height: 1.5; color: var(--text-main); border-radius: var(--radius-md); min-height: 40px; word-break: break-all; background-color: var(--panel-color); border: 1px solid var(--border-color); }
-    ::placeholder { color: #bcc0c4; }
+    #translateResult { margin-top: 12px; padding: 8px; font-size: 13px; line-height: 1.5; color: var(--text-main); border-radius: var(--radius-md); min-height: 40px; word-break: break-all; background-color: var(--panel-color); border: 1px solid var(--border-color); transition: background-color 0.2s, color 0.2s; }
+    ::placeholder { color: var(--text-sub); opacity: 0.7; }
 
-    .dict-inputs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .action-buttons { display: flex; gap: 8px; margin-top: 8px; }
+    #copyPopupBtn, #swapBtn { flex: 1; padding: 8px; font-size: 12px; font-family: var(--font-family); color: var(--text-sub); background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; display: none; transition: background-color 0.2s; }
+    #copyPopupBtn:hover, #swapBtn:hover { background-color: var(--input-bg); }
+
+    .dict-inputs { display: flex; gap: 8px; margin-bottom: 8px; margin-top: 12px; }
     .dict-inputs input { margin-bottom: 0; }
-    #addDictBtn { width: 50px; padding: 10px; background-color: #65676b; }
+    #addDictBtn { width: 50px; padding: 10px; background-color: var(--text-sub); color: #fff; border: none; border-radius: var(--radius-md); cursor: pointer; }
     
-    /* CSV 업로드 영역 디자인 수정 */
-    .csv-upload-container { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .csv-upload-container input[type="file"] { 
-      margin-bottom: 0; 
-      padding: 0; 
-      font-size: 12px; 
-      color: var(--text-sub);
-      background-color: transparent;
-      border: none;
-      width: 100%;
-    }
-    
-    /* '파일 선택' 버튼 커스텀 스타일 */
-    .csv-upload-container input[type="file"]::file-selector-button {
-      font-family: var(--font-family);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-sub);
-      background-color: var(--panel-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 6px 10px;
-      margin-right: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .csv-upload-container input[type="file"]::file-selector-button:hover {
-      background-color: var(--input-bg);
-    }
-    
-    /* CSV 등록 버튼 너비 자동 조절 및 줄바꿈 방지 */
-    #uploadCsvBtn { 
-      width: auto; 
-      white-space: nowrap; 
-      padding: 8px 12px; 
-      font-size: 12px; 
-      background-color: #65676b; 
-    }
+    .csv-upload-container { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+    .csv-upload-container input[type="file"] { margin-bottom: 0; padding: 0; font-size: 12px; color: var(--text-sub); background-color: transparent; border: none; width: 100%; }
+    .csv-upload-container input[type="file"]::file-selector-button { font-family: var(--font-family); font-size: 12px; font-weight: 600; color: var(--text-sub); background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 6px 10px; margin-right: 8px; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+    .csv-upload-container input[type="file"]::file-selector-button:hover { background-color: var(--input-bg); }
+    #uploadCsvBtn { width: auto; white-space: nowrap; padding: 8px 12px; font-size: 12px; background-color: var(--text-sub); color: #fff; border: none; border-radius: var(--radius-md); cursor: pointer; }
 
     #dictList { list-style: none; padding: 0; margin: 0; max-height: 100px; overflow-y: auto; }
-    #dictList li { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 6px 10px; border-radius: var(--radius-sm); margin-bottom: 4px; font-size: 12px; }
+    #dictList li { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 6px 10px; border-radius: var(--radius-sm); margin-bottom: 4px; font-size: 12px; color: var(--text-main); }
     .delete-dict-btn { background: transparent; border: none; color: #ff4d4f; width: auto; padding: 2px 6px; font-size: 14px; cursor: pointer; }
     .delete-dict-btn:hover { background: transparent; font-weight: bold; }
+
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .history-actions { display: flex; gap: 4px; }
+    #toggleHistoryBtn, #clearHistoryBtn { width: auto; padding: 4px 8px; font-size: 11px; background-color: transparent; color: var(--text-sub); border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; }
+    #toggleHistoryBtn:hover, #clearHistoryBtn:hover { background-color: var(--input-bg); }
+    
+    #historyList { list-style: none; padding: 0; margin: 0; max-height: 180px; overflow-y: auto; display: none; }
+    #historyList li { background: var(--input-bg); padding: 10px; border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 12px; color: var(--text-main); display: flex; flex-direction: column; gap: 6px; position: relative; }
+    
+    .hist-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .hist-original { font-weight: 600; color: var(--text-sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all; flex-grow: 1; }
+    .hist-translated { color: var(--text-main); word-break: break-all; line-height: 1.4; padding-right: 14px; }
+    
+    .hist-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px; }
+    .hist-source { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hist-source a { color: var(--status-color); text-decoration: none; font-weight: 500; }
+    .hist-source a:hover { text-decoration: underline; }
+    .hist-source span { color: var(--text-sub); font-size: 11px; }
+    .hist-date { font-size: 10px; color: var(--text-sub); }
+    
+    .delete-history-item-btn { background: transparent; border: none; color: #ff4d4f; padding: 0; font-size: 12px; cursor: pointer; width: auto; transition: opacity 0.2s; opacity: 0.6; }
+    .delete-history-item-btn:hover { opacity: 1; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -91,56 +97,90 @@
     <div id="status"></div>
   </div>
 
-  <div>
-    <label for="apiKey">Gemini API Key</label>
-    <input type="password" id="apiKey" placeholder="API Key를 입력하세요">
-    
-    <label for="modelSelect">사용할 모델</label>
-    <select id="modelSelect">
-      <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-      <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
-      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-      <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
-    </select>
-    
-    <label for="targetLang">번역할 언어</label>
-    <select id="targetLang">
-      <option value="한국어">한국어</option>
-      <option value="영어">영어</option>
-      <option value="일본어">일본어</option>
-      <option value="중국어">중국어</option>
-    </select>
-
-    <label for="customPrompt">추가 프롬프트 (선택)</label>
-    <textarea id="customPrompt" placeholder="예: 더 자연스러운 구어체로 번역해줘" rows="2"></textarea>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="translate">번역</button>
+    <button class="tab-btn" data-tab="settings">설정</button>
   </div>
 
-  <div class="container">
-    <h5 class="section-title">사용자 사전 (고정 번역)</h5>
-    
-    <div class="csv-upload-container">
-      <input type="file" id="csvFileInput" accept=".csv">
-      <button id="uploadCsvBtn">CSV 등록</button>
+  <div id="tab-translate" class="tab-content active">
+    <div class="container">
+      <h5 class="section-title">직접 입력 번역</h5>
+      <div style="margin-top: 12px;">
+        <label for="targetLang">번역할 언어</label>
+        <select id="targetLang">
+          <option value="한국어">한국어</option>
+          <option value="영어">영어</option>
+          <option value="일본어">일본어</option>
+          <option value="중국어">중국어</option>
+        </select>
+      </div>
+      <textarea id="inputText" placeholder="번역할 텍스트를 입력하세요..." rows="3"></textarea>
+      <button id="translateBtn" class="primary-btn">번역하기</button>
+      <div id="translateResult">결과가 여기에 표시됩니다.</div>
+      <div class="action-buttons">
+        <button id="swapBtn">⇄ 역번역 교환</button>
+        <button id="copyPopupBtn">복사하기</button>
+      </div>
     </div>
-
-    <div class="dict-inputs">
-      <input type="text" id="dictKey" placeholder="원문 (예: Apple)">
-      <input type="text" id="dictVal" placeholder="번역 (예: 사과)">
-      <button id="addDictBtn">+</button>
+    <div class="container">
+      <div class="history-header">
+        <h5 class="section-title" id="historyTitle">최근 번역 기록 (0)</h5>
+        <div class="history-actions">
+          <button id="toggleHistoryBtn">펼치기</button>
+          <button id="clearHistoryBtn">전체 삭제</button>
+        </div>
+      </div>
+      <ul id="historyList"></ul>
     </div>
-    <ul id="dictList"></ul>
   </div>
 
-  <div class="container">
-    <h5 class="section-title">직접 입력 번역</h5>
-    <textarea id="inputText" placeholder="번역할 텍스트를 입력하세요..." rows="3"></textarea>
-    <button id="translateBtn">번역하기</button>
-    <div id="translateResult">결과가 여기에 표시됩니다.</div>
-    <button id="copyPopupBtn">결과 복사하기</button>
+  <div id="tab-settings" class="tab-content">
+    <div>
+      <label for="themeSelect">UI 테마</label>
+      <select id="themeSelect">
+        <option value="light">라이트 모드 (기본)</option>
+        <option value="dark">다크 모드</option>
+      </select>
+
+      <label for="apiKey">Gemini API Key</label>
+      <input type="password" id="apiKey" placeholder="API Key를 입력하세요">
+      
+      <label for="modelSelect">사용할 모델</label>
+      <select id="modelSelect">
+        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+        <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+        <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
+      </select>
+
+      <label for="presetSelect">번역 프리셋 (어투)</label>
+      <select id="presetSelect">
+        <option value="none">설정 없음 (기본)</option>
+        <option value="summary">3줄 요약</option>
+        <option value="business">비즈니스 (격식)</option>
+        <option value="polite">일반 경어체 (해요체)</option>
+        <option value="informal">반말 (친근함)</option>
+      </select>
+
+      <label for="customPrompt">추가 프롬프트 (개별 지시)</label>
+      <textarea id="customPrompt" placeholder="예: 더 자연스러운 구어체로 번역해줘" rows="2"></textarea>
+    </div>
+    <div class="container">
+      <h5 class="section-title">사용자 사전 (고정 번역)</h5>
+      <div class="csv-upload-container">
+        <input type="file" id="csvFileInput" accept=".csv">
+        <button id="uploadCsvBtn">CSV 등록</button>
+      </div>
+      <div class="dict-inputs">
+        <input type="text" id="dictKey" placeholder="원문 (예: Apple)">
+        <input type="text" id="dictVal" placeholder="번역 (예: 사과)">
+        <button id="addDictBtn">+</button>
+      </div>
+      <ul id="dictList"></ul>
+    </div>
   </div>
-  
   <script src="popup.js"></script>
 </body>
 </html>

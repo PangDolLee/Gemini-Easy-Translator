@@ -3,8 +3,8 @@ let resultBox = null;
 let selectedText = '';
 let lastMouseX = 0;
 let lastMouseY = 0;
+let currentTheme = 'light';
 
-// 전역 모델명 매핑
 const modelNames = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
   'gemini-3.1-pro': 'Gemini 3.1 Pro',
@@ -14,12 +14,21 @@ const modelNames = {
   'gemini-3.5-flash': 'Gemini 3.5 Flash'
 };
 
+chrome.storage.local.get(['themeSelect'], (data) => {
+  if (data.themeSelect) currentTheme = data.themeSelect;
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.themeSelect) {
+    currentTheme = changes.themeSelect.newValue;
+  }
+});
+
 document.addEventListener('contextmenu', (e) => {
   lastMouseX = e.pageX;
   lastMouseY = e.pageY;
 });
 
-// 우클릭 번역 결과 처리
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "showLoading") {
     showResult('번역 중...', lastMouseX, lastMouseY);
@@ -29,7 +38,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       const prettyModelName = modelNames[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
-      
       showResult(request.result, lastMouseX, lastMouseY, title);
     }
   }
@@ -37,10 +45,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 document.addEventListener('mouseup', (e) => {
   if (e.target.closest('#gemini-translate-btn') || e.target.closest('#gemini-translate-result-container')) return;
-
   setTimeout(() => {
     selectedText = window.getSelection().toString().trim();
-    
     if (selectedText.length > 0) {
       showButton(e.pageX, e.pageY);
     } else {
@@ -59,6 +65,7 @@ function showButton(x, y) {
   removeUI();
   translateBtn = document.createElement('button');
   translateBtn.id = 'gemini-translate-btn';
+  translateBtn.setAttribute('data-theme', currentTheme);
   translateBtn.textContent = '번역';
   translateBtn.style.left = `${x + 10}px`;
   translateBtn.style.top = `${y + 10}px`;
@@ -68,15 +75,14 @@ function showButton(x, y) {
     e.preventDefault();
     translateText(x, y);
   });
-
   document.body.appendChild(translateBtn);
 }
 
 function showResult(text, x, y, title = '') {
   removeUI();
-  
   resultBox = document.createElement('div');
   resultBox.id = 'gemini-translate-result-container';
+  resultBox.setAttribute('data-theme', currentTheme);
   resultBox.style.left = `${x + 10}px`;
   resultBox.style.top = `${y + 10}px`;
 
@@ -100,7 +106,6 @@ function showResult(text, x, y, title = '') {
       });
     });
     header.appendChild(copyBtn);
-
     resultBox.appendChild(header);
   }
 
@@ -108,7 +113,6 @@ function showResult(text, x, y, title = '') {
   content.id = 'gemini-translate-result-content';
   content.textContent = text;
   resultBox.appendChild(content);
-
   document.body.appendChild(resultBox);
 }
 
@@ -117,22 +121,122 @@ function removeUI() {
   if (resultBox) { resultBox.remove(); resultBox = null; }
 }
 
-// 드래그 번역 처리
 function translateText(x, y) {
-  translateBtn.textContent = '번역 중...';
+  let useNewTab = false;
+  let newWin = null;
+  const LONG_TEXT_THRESHOLD = 1000; 
+
+  if (selectedText.length > LONG_TEXT_THRESHOLD) {
+    useNewTab = confirm("선택한 텍스트의 양이 많습니다. 가독성을 위해 번역 결과를 새로운 탭에서 확인하시겠습니까?");
+    if (useNewTab) {
+      newWin = window.open("", "_blank");
+      if (newWin) {
+        const isDark = currentTheme === 'dark';
+        
+        const cssVars = isDark ? `
+          --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
+          --border-color: #343536; --status-color: #4da3ff;
+        ` : `
+          --bg-color: #f4f4f7; --panel-color: #ffffff; --text-main: #1a1a1b; --text-sub: #65676b;
+          --border-color: #e4e6eb; --status-color: #007bff;
+        `;
+
+        newWin.document.write(`
+          <html>
+          <head>
+            <title>번역 진행 중...</title>
+            <meta charset="utf-8">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+              :root { ${cssVars} }
+              body { 
+                font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; 
+                background-color: var(--bg-color); 
+                color: var(--text-main); 
+                margin: 0; 
+                padding: 40px 20px; 
+                display: flex; 
+                justify-content: center;
+              }
+              .container {
+                width: 100%;
+                max-width: 800px;
+                background-color: var(--panel-color);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                padding: 30px 40px;
+                box-sizing: border-box;
+              }
+              .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
+              .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; }
+              .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
+              .content-box { 
+                font-size: 15px; 
+                line-height: 1.6; 
+                white-space: pre-wrap; 
+                margin-bottom: 30px; 
+                word-break: break-word; 
+                overflow-wrap: break-word; 
+              }
+              .original { color: var(--text-sub); border-left: 4px solid var(--border-color); padding-left: 16px; margin-left: 4px; margin-bottom: 0; }
+              
+              /* 접기/펼치기 구조용 스타일 */
+              details { margin-bottom: 30px; }
+              details summary { cursor: pointer; user-select: none; }
+              details[open] summary { margin-bottom: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="container" id="main-container">
+              <div class="loading">번역 중... 잠시만 기다려주세요.</div>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+      removeUI(); 
+    } else {
+      translateBtn.textContent = '번역 중...';
+    }
+  } else {
+    translateBtn.textContent = '번역 중...';
+  }
+
   chrome.runtime.sendMessage({ action: "translate", text: selectedText }, (response) => {
     if (chrome.runtime.lastError) {
-      showResult(`오류: ${chrome.runtime.lastError.message}`, x, y);
+      if (useNewTab && newWin) {
+        newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${chrome.runtime.lastError.message}</div>`;
+      } else {
+        showResult(`오류: ${chrome.runtime.lastError.message}`, x, y);
+      }
       return;
     }
 
     if (response.error) {
-      showResult(`오류: ${response.error}`, x, y);
+      if (useNewTab && newWin) {
+        newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${response.error}</div>`;
+      } else {
+        showResult(`오류: ${response.error}`, x, y);
+      }
     } else {
       const prettyModelName = modelNames[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
       
-      showResult(response.result, x, y, title);
+      if (useNewTab && newWin) {
+        newWin.document.title = "Gemini 번역 결과";
+        newWin.document.getElementById('main-container').innerHTML = `
+          <div class="header">${title}</div>
+          <details>
+            <summary class="section-title">원문 보기 (클릭하여 펼치기)</summary>
+            <div class="content-box original">${selectedText}</div>
+          </details>
+          <div class="section-title">번역 결과</div>
+          <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
+        `;
+      } else {
+        showResult(response.result, x, y, title);
+      }
     }
   });
 }
