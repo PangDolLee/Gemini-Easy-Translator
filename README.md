@@ -1,4 +1,4 @@
-# Gemini Drag Translator (Chrome Extension)
+# Gemini Easy Translator (Chrome Extension)
 
 A lightweight and powerful Chrome Extension that translates text on any webpage using the Google Gemini API. It provides a seamless translation experience through text selection (drag), right-click context menus, and a dedicated popup interface.
 
