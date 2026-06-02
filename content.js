@@ -4,13 +4,22 @@ let selectedText = '';
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-// 우클릭 위치 저장 (우클릭 메뉴 번역창 띄우기 용도)
+// 전역 모델명 매핑
+const modelNames = {
+  'gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'gemini-3.1-pro': 'Gemini 3.1 Pro',
+  'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+  'gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
+  'gemini-3.5-flash': 'Gemini 3.5 Flash'
+};
+
 document.addEventListener('contextmenu', (e) => {
   lastMouseX = e.pageX;
   lastMouseY = e.pageY;
 });
 
-// 백그라운드 스크립트로부터의 우클릭 번역 요청/결과 메시지 수신
+// 우클릭 번역 결과 처리
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "showLoading") {
     showResult('번역 중...', lastMouseX, lastMouseY);
@@ -18,12 +27,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.error) {
       showResult(`오류: ${request.error}`, lastMouseX, lastMouseY);
     } else {
-      const modelNames = {
-        'gemini-2.5-pro': 'Gemini 2.5 Pro',
-        'gemini-3.1-pro': 'Gemini 3.1 Pro',
-        'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
-        'gemini-3.5-flash': 'Gemini 3.5 Flash'
-      };
       const prettyModelName = modelNames[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
       
@@ -114,6 +117,7 @@ function removeUI() {
   if (resultBox) { resultBox.remove(); resultBox = null; }
 }
 
+// 드래그 번역 처리
 function translateText(x, y) {
   translateBtn.textContent = '번역 중...';
   chrome.runtime.sendMessage({ action: "translate", text: selectedText }, (response) => {
@@ -125,13 +129,6 @@ function translateText(x, y) {
     if (response.error) {
       showResult(`오류: ${response.error}`, x, y);
     } else {
-      const modelNames = {
-        'gemini-2.5-pro': 'Gemini 2.5 Pro',
-        'gemini-3.1-pro': 'Gemini 3.1 Pro',
-        'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
-        'gemini-3.5-flash': 'Gemini 3.5 Flash'
-      };
-      
       const prettyModelName = modelNames[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
       
