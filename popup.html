@@ -28,7 +28,6 @@
     hr { border: 0; border-top: 1px solid var(--border-color); margin: 16px -16px; }
     .container { background-color: var(--panel-color); padding: 16px; border-radius: var(--radius-md); box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-top: 16px; }
     
-    /* 버튼 스타일 */
     button { width: 100%; padding: 12px; font-family: var(--font-family); font-size: 14px; font-weight: 600; color: var(--primary-btn-text); background-color: var(--primary-btn-bg); border: none; border-radius: var(--radius-md); cursor: pointer; transition: background-color 0.2s; }
     button:hover { background-color: var(--primary-btn-hover); }
     button#copyPopupBtn { padding: 8px; margin-top: 8px; font-size: 12px; color: var(--text-sub); background-color: var(--panel-color); border: 1px solid var(--border-color); display: none; }
@@ -37,10 +36,49 @@
     #translateResult { margin-top: 12px; padding: 8px; font-size: 13px; line-height: 1.5; color: var(--text-main); border-radius: var(--radius-md); min-height: 40px; word-break: break-all; background-color: var(--panel-color); border: 1px solid var(--border-color); }
     ::placeholder { color: #bcc0c4; }
 
-    /* 사용자 사전 전용 스타일 */
     .dict-inputs { display: flex; gap: 8px; margin-bottom: 8px; }
     .dict-inputs input { margin-bottom: 0; }
     #addDictBtn { width: 50px; padding: 10px; background-color: #65676b; }
+    
+    /* CSV 업로드 영역 디자인 수정 */
+    .csv-upload-container { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .csv-upload-container input[type="file"] { 
+      margin-bottom: 0; 
+      padding: 0; 
+      font-size: 12px; 
+      color: var(--text-sub);
+      background-color: transparent;
+      border: none;
+      width: 100%;
+    }
+    
+    /* '파일 선택' 버튼 커스텀 스타일 */
+    .csv-upload-container input[type="file"]::file-selector-button {
+      font-family: var(--font-family);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      background-color: var(--panel-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      margin-right: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .csv-upload-container input[type="file"]::file-selector-button:hover {
+      background-color: var(--input-bg);
+    }
+    
+    /* CSV 등록 버튼 너비 자동 조절 및 줄바꿈 방지 */
+    #uploadCsvBtn { 
+      width: auto; 
+      white-space: nowrap; 
+      padding: 8px 12px; 
+      font-size: 12px; 
+      background-color: #65676b; 
+    }
+
     #dictList { list-style: none; padding: 0; margin: 0; max-height: 100px; overflow-y: auto; }
     #dictList li { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 6px 10px; border-radius: var(--radius-sm); margin-bottom: 4px; font-size: 12px; }
     .delete-dict-btn { background: transparent; border: none; color: #ff4d4f; width: auto; padding: 2px 6px; font-size: 14px; cursor: pointer; }
@@ -61,7 +99,9 @@
     <select id="modelSelect">
       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
       <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
-      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite(권장)</option>
+      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
       <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
     </select>
     
@@ -79,6 +119,12 @@
 
   <div class="container">
     <h5 class="section-title">사용자 사전 (고정 번역)</h5>
+    
+    <div class="csv-upload-container">
+      <input type="file" id="csvFileInput" accept=".csv">
+      <button id="uploadCsvBtn">CSV 등록</button>
+    </div>
+
     <div class="dict-inputs">
       <input type="text" id="dictKey" placeholder="원문 (예: Apple)">
       <input type="text" id="dictVal" placeholder="번역 (예: 사과)">
