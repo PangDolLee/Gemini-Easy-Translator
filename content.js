@@ -21,6 +21,8 @@ chrome.storage.local.get(['themeSelect'], (data) => {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.themeSelect) {
     currentTheme = changes.themeSelect.newValue;
+    if (translateBtn) translateBtn.setAttribute('data-theme', currentTheme);
+    if (resultBox) resultBox.setAttribute('data-theme', currentTheme);
   }
 });
 
@@ -50,19 +52,19 @@ document.addEventListener('mouseup', (e) => {
     if (selectedText.length > 0) {
       showButton(e.pageX, e.pageY);
     } else {
-      removeUI();
+      if (translateBtn) { translateBtn.remove(); translateBtn = null; }
     }
   }, 10);
 });
 
 document.addEventListener('mousedown', (e) => {
   if (!e.target.closest('#gemini-translate-btn') && !e.target.closest('#gemini-translate-result-container')) {
-    removeUI();
+    if (translateBtn) { translateBtn.remove(); translateBtn = null; }
   }
 });
 
 function showButton(x, y) {
-  removeUI();
+  if (translateBtn) translateBtn.remove();
   translateBtn = document.createElement('button');
   translateBtn.id = 'gemini-translate-btn';
   translateBtn.setAttribute('data-theme', currentTheme);
@@ -79,7 +81,8 @@ function showButton(x, y) {
 }
 
 function showResult(text, x, y, title = '') {
-  removeUI();
+  if (resultBox) resultBox.remove(); 
+  
   resultBox = document.createElement('div');
   resultBox.id = 'gemini-translate-result-container';
   resultBox.setAttribute('data-theme', currentTheme);
@@ -94,6 +97,10 @@ function showResult(text, x, y, title = '') {
     titleSpan.textContent = title;
     header.appendChild(titleSpan);
 
+    const btnWrapper = document.createElement('div');
+    btnWrapper.style.display = 'flex';
+    btnWrapper.style.gap = '4px';
+
     const copyBtn = document.createElement('button');
     copyBtn.id = 'gemini-translate-copy-btn';
     copyBtn.textContent = '복사';
@@ -105,26 +112,105 @@ function showResult(text, x, y, title = '') {
         setTimeout(() => { copyBtn.textContent = '복사'; }, 1500);
       });
     });
-    header.appendChild(copyBtn);
+    btnWrapper.appendChild(copyBtn);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.id = 'gemini-translate-close-btn';
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (resultBox) { resultBox.remove(); resultBox = null; }
+    });
+    btnWrapper.appendChild(closeBtn);
+
+    header.appendChild(btnWrapper);
     resultBox.appendChild(header);
+
+    // 위치 변경(드래그) 로직
+    let isDragging = false;
+    let dragStartX, dragStartY, initialLeft, initialTop;
+
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button')) return; 
+      e.preventDefault();
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      initialLeft = parseInt(resultBox.style.left, 10) || 0;
+      initialTop = parseInt(resultBox.style.top, 10) || 0;
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      resultBox.style.left = `${initialLeft + dx}px`;
+      resultBox.style.top = `${initialTop + dy}px`;
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
   }
 
   const content = document.createElement('div');
   content.id = 'gemini-translate-result-content';
   content.textContent = text;
   resultBox.appendChild(content);
-  document.body.appendChild(resultBox);
-}
 
-function removeUI() {
-  if (translateBtn) { translateBtn.remove(); translateBtn = null; }
-  if (resultBox) { resultBox.remove(); resultBox = null; }
+  // 크기 조절 핸들 추가 및 로직 구현
+  const resizeHandle = document.createElement('div');
+  resizeHandle.id = 'gemini-translate-resize-handle';
+  resultBox.appendChild(resizeHandle);
+
+  let isResizing = false;
+  let resizeStartWidth, resizeStartHeight, resizeStartX, resizeStartY;
+
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isResizing = true;
+    resizeStartX = e.clientX;
+    resizeStartY = e.clientY;
+    resizeStartWidth = resultBox.offsetWidth;
+    resizeStartHeight = resultBox.offsetHeight;
+
+    document.addEventListener('mousemove', onResizeMouseMove);
+    document.addEventListener('mouseup', onResizeMouseUp);
+  });
+
+  function onResizeMouseMove(e) {
+    if (!isResizing) return;
+    const dw = e.clientX - resizeStartX;
+    const dh = e.clientY - resizeStartY;
+    
+    // 최소 너비 240px, 최소 높이 120px 제한 적용
+    const targetWidth = Math.max(240, resizeStartWidth + dw);
+    const targetHeight = Math.max(120, resizeStartHeight + dh);
+
+    resultBox.style.setProperty('width', `${targetWidth}px`, 'important');
+    resultBox.style.setProperty('height', `${targetHeight}px`, 'important');
+  }
+
+  function onResizeMouseUp() {
+    isResizing = false;
+    document.removeEventListener('mousemove', onResizeMouseMove);
+    document.removeEventListener('mouseup', onResizeMouseUp);
+  }
+
+  document.body.appendChild(resultBox);
 }
 
 function translateText(x, y) {
   let useNewTab = false;
   let newWin = null;
-  const LONG_TEXT_THRESHOLD = 1000; 
+  const LONG_TEXT_THRESHOLD = 300; 
 
   if (selectedText.length > LONG_TEXT_THRESHOLD) {
     useNewTab = confirm("선택한 텍스트의 양이 많습니다. 가독성을 위해 번역 결과를 새로운 탭에서 확인하시겠습니까?");
@@ -132,7 +218,6 @@ function translateText(x, y) {
       newWin = window.open("", "_blank");
       if (newWin) {
         const isDark = currentTheme === 'dark';
-        
         const cssVars = isDark ? `
           --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
           --border-color: #343536; --status-color: #4da3ff;
@@ -149,39 +234,13 @@ function translateText(x, y) {
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
               :root { ${cssVars} }
-              body { 
-                font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; 
-                background-color: var(--bg-color); 
-                color: var(--text-main); 
-                margin: 0; 
-                padding: 40px 20px; 
-                display: flex; 
-                justify-content: center;
-              }
-              .container {
-                width: 100%;
-                max-width: 800px;
-                background-color: var(--panel-color);
-                border: 1px solid var(--border-color);
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                padding: 30px 40px;
-                box-sizing: border-box;
-              }
+              body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
+              .container { width: 100%; max-width: 800px; background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 30px 40px; box-sizing: border-box; }
               .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
               .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; }
               .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
-              .content-box { 
-                font-size: 15px; 
-                line-height: 1.6; 
-                white-space: pre-wrap; 
-                margin-bottom: 30px; 
-                word-break: break-word; 
-                overflow-wrap: break-word; 
-              }
+              .content-box { font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px; word-break: break-word; overflow-wrap: break-word; }
               .original { color: var(--text-sub); border-left: 4px solid var(--border-color); padding-left: 16px; margin-left: 4px; margin-bottom: 0; }
-              
-              /* 접기/펼치기 구조용 스타일 */
               details { margin-bottom: 30px; }
               details summary { cursor: pointer; user-select: none; }
               details[open] summary { margin-bottom: 12px; }
@@ -195,7 +254,7 @@ function translateText(x, y) {
           </html>
         `);
       }
-      removeUI(); 
+      if (translateBtn) { translateBtn.remove(); translateBtn = null; }
     } else {
       translateBtn.textContent = '번역 중...';
     }

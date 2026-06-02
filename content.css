@@ -1,45 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap');
 
-/* 공통 색상 변수 (라이트 테마) */
 #gemini-translate-btn, #gemini-translate-result-container {
   --bg-color: #f4f4f7;
   --panel-color: #ffffff;
   --text-main: #1a1a1b;
   --text-sub: #65676b;
   --border-color: #e4e6eb;
-  
-  /* 1. 드래그 번역 버튼: 옅은 하늘색 배경, 가독성을 위한 진한 파란색 텍스트 */
   --btn-bg: #e0f2fe;
   --btn-hover: #bae6fd;
   --btn-text: #0369a1;
 }
 
-/* 다크 테마 색상 변수 오버라이드 */
 #gemini-translate-btn[data-theme="dark"], #gemini-translate-result-container[data-theme="dark"] {
   --bg-color: #1a1a1b;
   --panel-color: #272729;
   --text-main: #d7dadc;
   --text-sub: #a8aaab;
   --border-color: #343536;
-  
-  /* 다크 테마용 하늘색 버튼 */
   --btn-bg: #0284c7;
   --btn-hover: #0369a1;
   --btn-text: #f0f9ff;
 }
 
 #gemini-translate-btn {
-  all: initial; /* 방문한 웹사이트의 CSS 간섭 차단 */
+  all: initial;
   position: absolute !important;
-  z-index: 999999 !important;
+  z-index: 9147483647 !important;
   background-color: var(--btn-bg) !important;
   color: var(--btn-text) !important;
   border: 1px solid rgba(0,0,0,0.05) !important;
   border-radius: 6px !important;
-  
-  /* 2. 텍스트와 여백 축소 (기존 6px 12px -> 4px 8px) */
   padding: 4px 8px !important;
-  
   cursor: pointer !important;
   font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
   font-size: 13px !important;
@@ -57,15 +48,19 @@
 #gemini-translate-result-container {
   all: initial;
   position: absolute !important;
-  z-index: 999999 !important;
+  z-index: 9147483647 !important;
   background-color: var(--panel-color) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
-  max-width: 320px !important;
+  width: 320px !important; /* 기본 너비 */
   font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  
+  /* 내부 요소 크기 연동을 위해 Flex 구조 할당 */
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 #gemini-translate-result-header {
@@ -80,6 +75,9 @@
   align-items: center !important;
   line-height: 1.2 !important;
   box-sizing: border-box !important;
+  cursor: move !important;
+  user-select: none !important;
+  flex-shrink: 0 !important;
 }
 
 #gemini-translate-result-header span {
@@ -99,11 +97,14 @@
   word-break: keep-all !important;
   background-color: var(--panel-color) !important;
   box-sizing: border-box !important;
+  
+  /* 부모 높이가 변함에 따라 유연하게 늘어나고 줄어들도록 설정 */
+  flex: 1 !important; 
+  overflow-y: auto !important;
 }
 
-/* 3. 복사 버튼 간섭 방지 및 정렬 수정 */
-#gemini-translate-copy-btn {
-  all: initial; /* 방문한 웹사이트의 CSS 간섭 차단 */
+#gemini-translate-copy-btn, #gemini-translate-close-btn {
+  all: initial;
   background-color: var(--panel-color) !important;
   color: var(--text-sub) !important;
   border: 1px solid var(--border-color) !important;
@@ -114,12 +115,38 @@
   cursor: pointer !important;
   font-family: "Noto Sans KR", "Noto Sans", sans-serif !important;
   line-height: 1 !important;
-  margin: 0 0 0 10px !important;
   display: inline-block !important;
   box-sizing: border-box !important;
-  transition: background-color 0.2s !important;
+  transition: background-color 0.2s, color 0.2s !important;
 }
 
 #gemini-translate-copy-btn:hover {
   background-color: var(--bg-color) !important;
+}
+
+#gemini-translate-close-btn:hover {
+  background-color: #fef2f2 !important;
+  color: #ef4444 !important;
+  border-color: #fca5a5 !important;
+}
+
+/* 크기 조절 우측 하단 핸들 스타일 시트 */
+#gemini-translate-resize-handle {
+  all: initial !important;
+  position: absolute !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  width: 10px !important;
+  height: 10px !important;
+  cursor: se-resize !important;
+  z-index: 9147483647 !important;
+  border-right: 2px solid var(--text-sub) !important;
+  border-bottom: 2px solid var(--text-sub) !important;
+  opacity: 0.3 !important;
+  box-sizing: border-box !important;
+  transition: opacity 0.2s !important;
+}
+
+#gemini-translate-resize-handle:hover {
+  opacity: 0.8 !important;
 }
