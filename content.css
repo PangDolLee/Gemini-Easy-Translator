@@ -22,7 +22,7 @@
   --btn-text: #f0f9ff;
 }
 
-/* 툴팁 래퍼 디자인 */
+/* 툴팁 래퍼 패널 */
 #gemini-translate-btn-wrapper {
   all: initial;
   position: absolute !important;
@@ -38,19 +38,38 @@
   box-sizing: border-box !important;
 }
 
-/* 언어 선택 셀렉트 박스 */
+/* 언어 선택 셀렉트 박스 디자인 수정 */
 #gemini-translate-lang-select {
   all: initial;
-  font-family: "Noto Sans KR", "Noto Sans", sans-serif !important;
-  font-size: 12px !important;
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   color: var(--text-main) !important;
   background-color: var(--bg-color) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 4px !important;
-  padding: 4px 6px !important;
+  padding: 4px 24px 4px 8px !important; /* 오른쪽 화살표 공간 확보 */
   cursor: pointer !important;
   line-height: 1.2 !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.2s, border-color 0.2s !important;
+
+  /* 브라우저 기본 화살표 제거 및 커서 다운 이미지 주입 */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 6px center !important;
+  background-size: 12px !important;
+}
+
+#gemini-translate-lang-select:hover {
+  background-color: var(--border-color) !important;
+}
+
+/* 다크 테마 시 셀렉트 박스 화살표 색상 변경 */
+#gemini-translate-btn-wrapper[data-theme="dark"] #gemini-translate-lang-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8aaab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 
 /* 내부 번역 버튼 */
@@ -60,9 +79,9 @@
   color: var(--btn-text) !important;
   border: 1px solid rgba(0,0,0,0.05) !important;
   border-radius: 4px !important;
-  padding: 4px 10px !important;
+  padding: 4px 12px !important;
   cursor: pointer !important;
-  font-family: "Noto Sans KR", "Noto Sans", sans-serif !important;
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   transition: background-color 0.2s, color 0.2s !important;
@@ -74,7 +93,7 @@
   background-color: var(--btn-hover) !important;
 }
 
-/* 번역 결과창 스타일 유지 */
+/* 번역 결과창 */
 #gemini-translate-result-container {
   all: initial;
   position: absolute !important;
