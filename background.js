@@ -16,13 +16,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "translate") {
     const sourceUrl = sender.tab ? sender.tab.url : "직접 입력함";
-    processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl);
+    // request.targetLang 파라미터를 추가로 전달
+    processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
     return true; 
   }
 });
 
-function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseCallback = null, sourceUrl = "직접 입력함") {
-  // 로컬 저장소에서 presetSelect 데이터를 함께 가져옴
+function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseCallback = null, sourceUrl = "직접 입력함", requestedLang = null) {
   chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict'], async (data) => {
     
     function sendResult(resultObj) {
@@ -39,9 +39,10 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
     }
 
     const model = data.modelSelect || 'gemini-3.5-flash';
-    const targetLang = data.targetLang || '한국어';
     
-    // --- [여기에 프리셋별 프롬프트가 정의되어 있습니다] ---
+    // 요청받은 언어가 있으면 최우선으로 사용, 없으면 저장된 값 사용
+    const targetLang = requestedLang || data.targetLang || '한국어';
+    
     const presetPrompts = {
       'none': "",
       'summary': "Summarize the text in exactly 3 bullet points in the target language.",
@@ -62,7 +63,6 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
-    // 최종 프롬프트 조합 (Style Instruction 항목으로 프리셋 주입)
     const prompt = `You are a professional translator. Translate the text enclosed in <source_text> tags into ${targetLang}.
 Return ONLY the translated result. Do NOT output original text or extra explanations.${presetInstruction}${customPrompt}${glossaryInstruction}
 

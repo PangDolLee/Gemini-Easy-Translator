@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap');
 
-#gemini-translate-btn, #gemini-translate-result-container {
+#gemini-translate-btn-wrapper, #gemini-translate-result-container {
   --bg-color: #f4f4f7;
   --panel-color: #ffffff;
   --text-main: #1a1a1b;
@@ -11,7 +11,7 @@
   --btn-text: #0369a1;
 }
 
-#gemini-translate-btn[data-theme="dark"], #gemini-translate-result-container[data-theme="dark"] {
+#gemini-translate-btn-wrapper[data-theme="dark"], #gemini-translate-result-container[data-theme="dark"] {
   --bg-color: #1a1a1b;
   --panel-color: #272729;
   --text-main: #d7dadc;
@@ -22,29 +22,59 @@
   --btn-text: #f0f9ff;
 }
 
-#gemini-translate-btn {
+/* 툴팁 래퍼 디자인 */
+#gemini-translate-btn-wrapper {
   all: initial;
   position: absolute !important;
   z-index: 9147483647 !important;
-  background-color: var(--btn-bg) !important;
-  color: var(--btn-text) !important;
-  border: 1px solid rgba(0,0,0,0.05) !important;
-  border-radius: 6px !important;
-  padding: 4px 8px !important;
-  cursor: pointer !important;
-  font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  transition: background-color 0.2s, color 0.2s !important;
-  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background-color: var(--panel-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
   box-sizing: border-box !important;
 }
 
-#gemini-translate-btn:hover {
+/* 언어 선택 셀렉트 박스 */
+#gemini-translate-lang-select {
+  all: initial;
+  font-family: "Noto Sans KR", "Noto Sans", sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text-main) !important;
+  background-color: var(--bg-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  padding: 4px 6px !important;
+  cursor: pointer !important;
+  line-height: 1.2 !important;
+}
+
+/* 내부 번역 버튼 */
+#gemini-translate-btn-inner {
+  all: initial;
+  background-color: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+  border: 1px solid rgba(0,0,0,0.05) !important;
+  border-radius: 4px !important;
+  padding: 4px 10px !important;
+  cursor: pointer !important;
+  font-family: "Noto Sans KR", "Noto Sans", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  transition: background-color 0.2s, color 0.2s !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+}
+
+#gemini-translate-btn-inner:hover {
   background-color: var(--btn-hover) !important;
 }
 
+/* 번역 결과창 스타일 유지 */
 #gemini-translate-result-container {
   all: initial;
   position: absolute !important;
@@ -52,13 +82,11 @@
   background-color: var(--panel-color) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
-  width: 320px !important; /* 기본 너비 */
+  width: 320px !important; 
   font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
-  
-  /* 내부 요소 크기 연동을 위해 Flex 구조 할당 */
   display: flex !important;
   flex-direction: column !important;
 }
@@ -97,8 +125,6 @@
   word-break: keep-all !important;
   background-color: var(--panel-color) !important;
   box-sizing: border-box !important;
-  
-  /* 부모 높이가 변함에 따라 유연하게 늘어나고 줄어들도록 설정 */
   flex: 1 !important; 
   overflow-y: auto !important;
 }
@@ -130,7 +156,6 @@
   border-color: #fca5a5 !important;
 }
 
-/* 크기 조절 우측 하단 핸들 스타일 시트 */
 #gemini-translate-resize-handle {
   all: initial !important;
   position: absolute !important;

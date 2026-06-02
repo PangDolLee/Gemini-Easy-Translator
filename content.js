@@ -1,9 +1,10 @@
-let translateBtn = null;
+let translateWrapper = null;
 let resultBox = null;
 let selectedText = '';
 let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
+let currentTargetLang = '한국어';
 
 const modelNames = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
@@ -14,15 +15,21 @@ const modelNames = {
   'gemini-3.5-flash': 'Gemini 3.5 Flash'
 };
 
-chrome.storage.local.get(['themeSelect'], (data) => {
+chrome.storage.local.get(['themeSelect', 'targetLang'], (data) => {
   if (data.themeSelect) currentTheme = data.themeSelect;
+  if (data.targetLang) currentTargetLang = data.targetLang;
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.themeSelect) {
-    currentTheme = changes.themeSelect.newValue;
-    if (translateBtn) translateBtn.setAttribute('data-theme', currentTheme);
-    if (resultBox) resultBox.setAttribute('data-theme', currentTheme);
+  if (namespace === 'local') {
+    if (changes.themeSelect) {
+      currentTheme = changes.themeSelect.newValue;
+      if (translateWrapper) translateWrapper.setAttribute('data-theme', currentTheme);
+      if (resultBox) resultBox.setAttribute('data-theme', currentTheme);
+    }
+    if (changes.targetLang) {
+      currentTargetLang = changes.targetLang.newValue;
+    }
   }
 });
 
@@ -46,38 +53,63 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 document.addEventListener('mouseup', (e) => {
-  if (e.target.closest('#gemini-translate-btn') || e.target.closest('#gemini-translate-result-container')) return;
+  if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) return;
   setTimeout(() => {
     selectedText = window.getSelection().toString().trim();
     if (selectedText.length > 0) {
       showButton(e.pageX, e.pageY);
     } else {
-      if (translateBtn) { translateBtn.remove(); translateBtn = null; }
+      if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
     }
   }, 10);
 });
 
 document.addEventListener('mousedown', (e) => {
-  if (!e.target.closest('#gemini-translate-btn') && !e.target.closest('#gemini-translate-result-container')) {
-    if (translateBtn) { translateBtn.remove(); translateBtn = null; }
+  if (!e.target.closest('#gemini-translate-btn-wrapper') && !e.target.closest('#gemini-translate-result-container')) {
+    if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
   }
 });
 
 function showButton(x, y) {
-  if (translateBtn) translateBtn.remove();
-  translateBtn = document.createElement('button');
-  translateBtn.id = 'gemini-translate-btn';
-  translateBtn.setAttribute('data-theme', currentTheme);
-  translateBtn.textContent = '번역';
-  translateBtn.style.left = `${x + 10}px`;
-  translateBtn.style.top = `${y + 10}px`;
+  if (translateWrapper) translateWrapper.remove();
   
-  translateBtn.addEventListener('mousedown', (e) => {
+  translateWrapper = document.createElement('div');
+  translateWrapper.id = 'gemini-translate-btn-wrapper';
+  translateWrapper.setAttribute('data-theme', currentTheme);
+  translateWrapper.style.left = `${x + 10}px`;
+  translateWrapper.style.top = `${y + 10}px`;
+  
+  // 언어 선택 셀렉트 박스 생성
+  const langSelect = document.createElement('select');
+  langSelect.id = 'gemini-translate-lang-select';
+  const langs = ['한국어', '영어', '일본어', '중국어'];
+  langs.forEach(lang => {
+    const opt = document.createElement('option');
+    opt.value = lang;
+    opt.textContent = lang;
+    if (lang === currentTargetLang) opt.selected = true;
+    langSelect.appendChild(opt);
+  });
+
+  langSelect.addEventListener('change', (e) => {
+    currentTargetLang = e.target.value;
+    chrome.storage.local.set({ targetLang: currentTargetLang });
+  });
+
+  // 번역 버튼 생성
+  const translateBtnInner = document.createElement('button');
+  translateBtnInner.id = 'gemini-translate-btn-inner';
+  translateBtnInner.textContent = '번역';
+  
+  translateBtnInner.addEventListener('mousedown', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    translateText(x, y);
+    translateText(x, y, translateBtnInner);
   });
-  document.body.appendChild(translateBtn);
+
+  translateWrapper.appendChild(langSelect);
+  translateWrapper.appendChild(translateBtnInner);
+  document.body.appendChild(translateWrapper);
 }
 
 function showResult(text, x, y, title = '') {
@@ -127,7 +159,6 @@ function showResult(text, x, y, title = '') {
     header.appendChild(btnWrapper);
     resultBox.appendChild(header);
 
-    // 위치 변경(드래그) 로직
     let isDragging = false;
     let dragStartX, dragStartY, initialLeft, initialTop;
 
@@ -164,7 +195,6 @@ function showResult(text, x, y, title = '') {
   content.textContent = text;
   resultBox.appendChild(content);
 
-  // 크기 조절 핸들 추가 및 로직 구현
   const resizeHandle = document.createElement('div');
   resizeHandle.id = 'gemini-translate-resize-handle';
   resultBox.appendChild(resizeHandle);
@@ -190,7 +220,6 @@ function showResult(text, x, y, title = '') {
     const dw = e.clientX - resizeStartX;
     const dh = e.clientY - resizeStartY;
     
-    // 최소 너비 240px, 최소 높이 120px 제한 적용
     const targetWidth = Math.max(240, resizeStartWidth + dw);
     const targetHeight = Math.max(120, resizeStartHeight + dh);
 
@@ -207,7 +236,7 @@ function showResult(text, x, y, title = '') {
   document.body.appendChild(resultBox);
 }
 
-function translateText(x, y) {
+function translateText(x, y, btnElement) {
   let useNewTab = false;
   let newWin = null;
   const LONG_TEXT_THRESHOLD = 300; 
@@ -254,15 +283,16 @@ function translateText(x, y) {
           </html>
         `);
       }
-      if (translateBtn) { translateBtn.remove(); translateBtn = null; }
+      if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
     } else {
-      translateBtn.textContent = '번역 중...';
+      if (btnElement) btnElement.textContent = '번역 중...';
     }
   } else {
-    translateBtn.textContent = '번역 중...';
+    if (btnElement) btnElement.textContent = '번역 중...';
   }
 
-  chrome.runtime.sendMessage({ action: "translate", text: selectedText }, (response) => {
+  // targetLang을 런타임 메시지에 포함시켜 전송
+  chrome.runtime.sendMessage({ action: "translate", text: selectedText, targetLang: currentTargetLang }, (response) => {
     if (chrome.runtime.lastError) {
       if (useNewTab && newWin) {
         newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${chrome.runtime.lastError.message}</div>`;
