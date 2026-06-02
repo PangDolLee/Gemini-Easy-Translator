@@ -16,7 +16,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "translate") {
     const sourceUrl = sender.tab ? sender.tab.url : "직접 입력함";
-    // request.targetLang 파라미터를 추가로 전달
     processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
     return true; 
   }
@@ -40,7 +39,6 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
 
     const model = data.modelSelect || 'gemini-3.5-flash';
     
-    // 요청받은 언어가 있으면 최우선으로 사용, 없으면 저장된 값 사용
     const targetLang = requestedLang || data.targetLang || '한국어';
     
     const presetPrompts = {
@@ -63,12 +61,16 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
-    const prompt = `You are a professional translator. Translate the text enclosed in <source_text> tags into ${targetLang}.
-Return ONLY the translated result. Do NOT output original text or extra explanations.${presetInstruction}${customPrompt}${glossaryInstruction}
+    // HTML 구조 유지를 위한 엄격한 지시문 추가
+    const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${targetLang}.
+CRITICAL RULES:
+1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
+2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
+3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).${presetInstruction}${customPrompt}${glossaryInstruction}
 
-<source_text>
+<source_content>
 ${textToTranslate}
-</source_text>`;
+</source_content>`;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
@@ -84,14 +86,26 @@ ${textToTranslate}
       if (resultData.error) {
         sendResult({ error: resultData.error.message });
       } else {
-        const translatedText = resultData.candidates[0].content.parts[0].text;
+        let translatedText = resultData.candidates[0].content.parts[0].text;
+        
+        // Gemini가 불필요하게 ```html 마크다운 블록을 추가하여 응답한 경우 제거
+        translatedText = translatedText.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
+
         sendResult({ result: translatedText, model: model, lang: targetLang });
+
+        // 기록 저장을 위해 HTML 태그를 제거한 순수 텍스트만 추출
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = textToTranslate;
+        const pureOriginalText = tempDiv.textContent || tempDiv.innerText || textToTranslate;
+        
+        tempDiv.innerHTML = translatedText;
+        const pureTranslatedText = tempDiv.textContent || tempDiv.innerText || translatedText;
 
         chrome.storage.local.get(['translationHistory'], (histData) => {
           let history = histData.translationHistory || [];
           history.unshift({
-            original: textToTranslate,
-            translated: translatedText,
+            original: pureOriginalText,
+            translated: pureTranslatedText,
             timestamp: new Date().getTime(),
             url: sourceUrl
           });

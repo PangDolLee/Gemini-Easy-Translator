@@ -1,5 +1,6 @@
 let translateWrapper = null;
 let resultBox = null;
+let selectedHTML = '';
 let selectedText = '';
 let lastMouseX = 0;
 let lastMouseY = 0;
@@ -48,7 +49,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       const prettyModelName = modelNames[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
-      showResult(request.result, lastMouseX, lastMouseY, title);
+      showResult(request.result, lastMouseX, lastMouseY, title, true); // true = HTML 렌더링 허용
     }
   }
 });
@@ -71,8 +72,17 @@ document.addEventListener('mouseup', (e) => {
   if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) return;
   
   setTimeout(() => {
-    selectedText = window.getSelection().toString().trim();
-    if (selectedText.length > 0) {
+    const selection = window.getSelection();
+    selectedText = selection.toString().trim();
+    
+    if (selectedText.length > 0 && selection.rangeCount > 0) {
+      // 선택 영역의 HTML 구조 복사
+      const range = selection.getRangeAt(0);
+      const clonedSelection = range.cloneContents();
+      const div = document.createElement('div');
+      div.appendChild(clonedSelection);
+      selectedHTML = div.innerHTML;
+
       showButton(e.pageX, e.pageY);
     } else {
       if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
@@ -158,10 +168,9 @@ function showButton(x, y) {
   document.body.appendChild(translateWrapper);
 }
 
-function showResult(text, x, y, title = '') {
+function showResult(textOrHTML, x, y, title = '', isHTML = false) {
   if (resultBox) resultBox.remove(); 
   
-  // 결과창이 나타날 때 언어 선택 툴팁이 남아있다면 완전히 제거
   if (translateWrapper) { 
     translateWrapper.remove(); 
     translateWrapper = null; 
@@ -191,7 +200,10 @@ function showResult(text, x, y, title = '') {
     copyBtn.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      navigator.clipboard.writeText(text).then(() => {
+      // HTML 렌더링된 요소의 순수 텍스트만 추출하여 클립보드에 복사
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = textOrHTML;
+      navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText || textOrHTML).then(() => {
         copyBtn.textContent = '완료';
         setTimeout(() => { copyBtn.textContent = '복사'; }, 1500);
       });
@@ -244,7 +256,14 @@ function showResult(text, x, y, title = '') {
 
   const content = document.createElement('div');
   content.id = 'gemini-translate-result-content';
-  content.textContent = text;
+  
+  // HTML 서식 지원 (백그라운드에서 HTML 마크업으로 넘어온 경우)
+  if (isHTML) {
+    content.innerHTML = textOrHTML;
+  } else {
+    content.textContent = textOrHTML;
+  }
+  
   resultBox.appendChild(content);
 
   const resizeHandle = document.createElement('div');
@@ -343,7 +362,8 @@ function translateText(x, y, btnElement) {
     if (btnElement) btnElement.textContent = '번역 중...';
   }
 
-  chrome.runtime.sendMessage({ action: "translate", text: selectedText, targetLang: currentTargetLang }, (response) => {
+  // 텍스트 대신 HTML 구조(selectedHTML)를 백그라운드로 전송
+  chrome.runtime.sendMessage({ action: "translate", text: selectedHTML, targetLang: currentTargetLang }, (response) => {
     if (chrome.runtime.lastError) {
       if (useNewTab && newWin) {
         newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${chrome.runtime.lastError.message}</div>`;
@@ -369,13 +389,13 @@ function translateText(x, y, btnElement) {
           <div class="header">${title}</div>
           <details>
             <summary class="section-title">원문 보기 (클릭하여 펼치기)</summary>
-            <div class="content-box original">${selectedText}</div>
+            <div class="content-box original">${selectedHTML}</div>
           </details>
           <div class="section-title">번역 결과</div>
           <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
         `;
       } else {
-        showResult(response.result, x, y, title);
+        showResult(response.result, x, y, title, true); // true = HTML 렌더링 허용
       }
     }
   });
