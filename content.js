@@ -5,7 +5,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
 let currentTargetLang = '한국어';
-let isUIInteraction = false; // UI 내부 클릭 여부를 추적하는 플래그
+let isUIInteraction = false; 
 
 const modelNames = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
@@ -53,7 +53,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// 마우스 누름(캡처링 단계): UI 컨트롤 여부 식별
 document.addEventListener('mousedown', (e) => {
   if (e.target.closest('#gemini-translate-btn-wrapper') || e.target.closest('#gemini-translate-result-container')) {
     isUIInteraction = true;
@@ -63,10 +62,9 @@ document.addEventListener('mousedown', (e) => {
   }
 }, true);
 
-// 마우스 뗌: 일반 텍스트 선택일 때만 팝업 노출
 document.addEventListener('mouseup', (e) => {
   if (isUIInteraction) {
-    isUIInteraction = false; // UI 조작 완료 후 초기화
+    isUIInteraction = false; 
     return;
   }
   
@@ -162,6 +160,12 @@ function showButton(x, y) {
 
 function showResult(text, x, y, title = '') {
   if (resultBox) resultBox.remove(); 
+  
+  // 결과창이 나타날 때 언어 선택 툴팁이 남아있다면 완전히 제거
+  if (translateWrapper) { 
+    translateWrapper.remove(); 
+    translateWrapper = null; 
+  }
   
   resultBox = document.createElement('div');
   resultBox.id = 'gemini-translate-result-container';
