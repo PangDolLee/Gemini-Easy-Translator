@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap');
+
+#gemini-translate-btn {
+  position: absolute;
+  z-index: 999999;
+  background-color: #4b4f56;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: background-color 0.2s;
+}
+
+#gemini-translate-btn:hover {
+  background-color: #36393f;
+}
+
+#gemini-translate-result-container {
+  position: absolute;
+  z-index: 999999;
+  background-color: #ffffff;
+  border: 1px solid #e4e6eb;
+  border-radius: 8px;
+  max-width: 320px;
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+#gemini-translate-result-header {
+  background-color: #f4f4f7;
+  color: #65676b;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #e4e6eb;
+  /* 양쪽 정렬을 위한 Flexbox 설정 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#gemini-translate-result-content {
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a1b;
+  word-break: keep-all;
+}
+
+/* 드래그 툴팁 내 복사 버튼 스타일 */
+#gemini-translate-copy-btn {
+  background-color: #ffffff;
+  color: #4b4f56;
+  border: 1px solid #bcc0c4;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s;
+}
+
+#gemini-translate-copy-btn:hover {
+  background-color: #f0f2f5;
+}
