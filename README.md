@@ -8,8 +8,8 @@ A lightweight and powerful Chrome Extension that translates text on any webpage 
 * **Context Menu Translation:** Right-click highlighted text to translate it instantly, bypassing restrictions on secure pages or PDF viewers.
 * **Popup Direct Translation:** A built-in popup interface for manual text input and translation without leaving your current tab.
 * **Selectable AI Models:** Choose from the latest Gemini models to balance speed and quality:
-  * Gemini 2.5 Pro / 2.5 Flash / 2.5 Flash Lite
-  * Gemini 3.1 Pro / 3.1 Flash Lite
+  * Gemini 2.5 Pro / 2.5 Flash / **2.5 Flash Lite(Recommended)**
+  * Gemini 3.1 Pro / **3.1 Flash Lite(Recommended)**
   * Gemini 3.5 Flash
 * **Custom Glossary:** Enforce specific translations for certain words. You can add them manually or upload a `.csv` file.
 * **Custom Prompts:** Add custom instructions (e.g., "Translate into a casual tone") to tailor the translation output.
