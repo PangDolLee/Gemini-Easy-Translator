@@ -1,48 +1,47 @@
-# Gemini Easy Translator (Chrome Extension)
+# Gemini 실시간 웹/이미지 번역기 (Chrome Extension)
 
-A lightweight and powerful Chrome Extension that translates text on any webpage using the Google Gemini API. It provides a seamless translation experience through text selection (drag), right-click context menus, and a dedicated popup interface.
+Google Gemini API를 활용하여 웹페이지 내에서 드래그한 텍스트(HTML 서식 유지) 및 이미지를 실시간으로 번역하고 관리할 수 있는 강력한 크롬 확장 프로그램입니다.
 
-## Features
+## ✨ 주요 기능
 
-* **Drag to Translate:** Simply highlight text on any webpage, and a translation button will appear. The result is displayed in a neat tooltip with a one-click copy button.
-* **Context Menu Translation:** Right-click highlighted text to translate it instantly, bypassing restrictions on secure pages or PDF viewers.
-* **Popup Direct Translation:** A built-in popup interface for manual text input and translation without leaving your current tab.
-* **Selectable AI Models:** Choose from the latest Gemini models to balance speed and quality:
-  * Gemini 2.5 Pro / 2.5 Flash / **2.5 Flash Lite(Recommended)**
-  * Gemini 3.1 Pro / **3.1 Flash Lite(Recommended)**
-  * Gemini 3.5 Flash
-* **Custom Glossary:** Enforce specific translations for certain words. You can add them manually or upload a `.csv` file.
-* **Custom Prompts:** Add custom instructions (e.g., "Translate into a casual tone") to tailor the translation output.
+* **서식 유지 드래그 번역:** 웹페이지에서 텍스트를 드래그하면 툴팁이 나타나며, 원본 HTML 서식(굵은 글씨, 링크, 리스트 등)을 그대로 유지한 채 번역 결과를 오버레이 창으로 보여줍니다.
+* **멀티모달 이미지 번역:** 웹페이지 내 이미지에 마우스 우클릭을 하여 `Gemini로 이미지 번역`을 선택하면, 이미지 내부의 텍스트를 OCR 및 분석하여 번역 결과를 제공합니다.
+* **번역 언어 실시간 변경:** 드래그 시 나타나는 커스텀 툴팁 패널에서 목표 번역 언어(한국어, 영어, 일본어, 중국어)를 즉시 변경할 수 있습니다.
+* **대용량 텍스트 새 탭 번역:** 드래그한 원문의 양이 많을 경우(300자 이상), 가독성 확보를 위해 깔끔한 카드 UI를 가진 새로운 탭에서 번역 결과를 확인할 수 있도록 유도합니다. 원문 접기/펼치기 기능을 지원합니다.
+* **사용자 편의 오버레이 창:** 번역 결과창은 자유롭게 드래그하여 위치를 이동할 수 있으며, 우측 하단 핸들을 통해 크기를 자유롭게 조절할 수 있습니다. ✕ 버튼을 누르기 전까지 사이트 내에서 유지됩니다.
+* **설정 관리 및 가독성 최적화 (탭 구조):**
+  * **번역 탭:** 직접 입력 번역, 역번역 교환, 최근 번역 기록(최대 50개 및 출처 URL 저장) 관리
+  * **설정 탭:** UI 테마(라이트/다크), 번역창 폰트 크기 조절(12px~18px), API Key 설정, Gemini 모델 선택, 번역 프리셋(3줄 요약, 비즈니스, 일반 경어체, 반말), 사용자 지정 사전(CSV 등록 지원)
 
-## Prerequisites
+## 📂 파일 구조
 
-To use this extension, you need a valid **Gemini API Key**. 
-You can get one for free from [Google AI Studio](https://aistudio.google.com/).
+* `manifest.json`: 확장 프로그램의 권한 및 백그라운드/콘텐츠 스크립트 설정
+* `popup.html`: 확장 프로그램 아이콘 클릭 시 나타나는 설정/직접입력 팝업 UI
+* `popup.js`: 팝업 UI 제어, 자동 저장 및 사용자 사전/기록 관리 로직
+* `content.js`: 웹페이지 내 드래그/우클릭 이벤트 감지, 커스텀 툴팁 및 결과창 생성, 새 탭 렌더링 로직
+* `content.css`: 웹페이지에 주입되는 툴팁, 결과 오버레이 창, 커스텀 드롭다운의 스타일 시트 (웹사이트 CSS 간섭 차단 적용)
+* `background.js`: 우클릭 컨텍스트 메뉴 생성 및 Gemini API(텍스트/이미지) 통신 처리
 
-If you frequently use the translation feature, it is recommended to set up a paid API plan.
-When using the free plan, there may be token limitations, which could cause issues when using the translation function.
+## 🚀 설치 및 사용 방법
 
-## Installation
+### 1. 로컬 개발자 모드로 설치하기
+1. 이 저장소의 코드를 다운로드하거나 클론(`git clone`)합니다.
+2. 크롬 브라우저를 열고 주소창에 `chrome://extensions/`를 입력하여 이동합니다.
+3. 우측 상단의 **개발자 모드** 토글을 켭니다.
+4. 좌측 상단의 **압축해제된 확장 프로그램을 로드합니다.** 버튼을 클릭합니다.
+5. 다운로드한 소스 코드가 포함된 폴더를 선택합니다.
 
-Since this extension is not published on the Chrome Web Store, you need to load it manually via Developer Mode.
+### 2. 초기 설정
+1. 설치된 확장 프로그램 아이콘을 클릭하여 팝업을 엽니다.
+2. **설정** 탭으로 이동합니다.
+3. [Google AI Studio](https://aistudio.google.com/)에서 발급받은 본인의 **Gemini API Key**를 입력합니다. (입력 시 자동 저장됩니다.)
+4. 사용할 Gemini 모델, UI 테마, 기본 폰트 크기 등을 취향에 맞게 설정합니다.
 
-1. Download or clone this repository to your local machine.
-2. Open Google Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer mode** by toggling the switch in the top right corner.
-4. Click the **Load unpacked** button.
-5. Select the directory containing the extension files.
+### 3. 기능 사용하기
+* **텍스트 번역:** 웹페이지에서 번역하고 싶은 부분을 마우스로 드래그한 후, 나타나는 패널에서 언어를 선택하고 `번역` 버튼을 누릅니다.
+* **이미지 번역:** 웹페이지의 이미지 위에서 마우스 우클릭을 한 후, `Gemini로 이미지 번역` 메뉴를 클릭합니다.
 
-## Configuration & Usage
+## 🔒 개인정보보호 및 데이터 보안
 
-1. Click the extension icon in your Chrome toolbar.
-2. Enter your **Gemini API Key** in the settings panel.
-3. Select your preferred **Model** and **Target Language**.
-4. (Optional) Add a custom prompt or configure your personal dictionary.
-5. **Auto-save:** All settings are saved automatically as you type or change options.
-
-### Glossary CSV Format
-If you want to bulk-upload a custom dictionary, use a `.csv` file with the following format (no headers required):
-```text
-OriginalWord,TranslatedWord
-Apple,사과
-Banana,바나나
+* **로컬 저장 방식:** 사용자가 입력한 API Key, 설정값, 번역 기록 등 모든 데이터는 외부 서버로 수집되지 않으며, 오직 사용자의 브라우저 로컬 저장소에만 암호화되어 안전하게 보관됩니다.
+* **API 통신:** 번역 처리를 위한 데이터 전송은 Google의 공식 Gemini API 서버와만 안전하게 이루어집니다.
