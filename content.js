@@ -56,7 +56,7 @@ function initShadowDOM() {
         all: initial; display: flex; justify-content: space-between; align-items: center; font-family: inherit; font-size: 13px;
         font-weight: 500; color: var(--text-main); background-color: var(--bg-color); border: 1px solid var(--border-color);
         border-radius: 4px; padding: 4px 8px; cursor: pointer; line-height: 1.2; box-sizing: border-box; min-width: 72px;
-        transition: background-color 0.2s, border-color 0.2s;
+        transition: background-color 0.2s, border-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
       }
       #gemini-translate-select-trigger:hover { background-color: var(--border-color); }
       #gemini-translate-select-arrow {
@@ -74,7 +74,7 @@ function initShadowDOM() {
       }
       #gemini-translate-options-list li {
         all: initial; display: block; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif; font-size: 13px;
-        color: var(--text-main); padding: 8px 12px; cursor: pointer; line-height: 1.2; box-sizing: border-box; transition: background-color 0.2s;
+        color: var(--text-main); padding: 8px 12px; cursor: pointer; line-height: 1.2; box-sizing: border-box; transition: background-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
       }
       #gemini-translate-options-list li:hover { background-color: var(--bg-color); }
       #gemini-translate-options-list li.selected { color: var(--status-color); font-weight: 600; background-color: var(--bg-color); }
