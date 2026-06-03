@@ -6,7 +6,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
 let currentTargetLang = '한국어';
-let currentFontSize = '14px'; // 폰트 크기 변수 추가
+let currentFontSize = '14px';
 let isUIInteraction = false; 
 
 const modelNames = {
@@ -57,7 +57,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       const prettyModelName = modelNames[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
-      showResult(request.result, lastMouseX, lastMouseY, title, true); 
+      showResult(request.result, lastMouseX, lastMouseY, title, request.isHTML !== false); 
+    }
+  } else if (request.action === "triggerContextMenuTranslation") {
+    const selection = window.getSelection();
+    selectedText = selection.toString().trim();
+    
+    if (selectedText.length > 0 && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const clonedSelection = range.cloneContents();
+      const div = document.createElement('div');
+      div.appendChild(clonedSelection);
+      selectedHTML = div.innerHTML;
+
+      translateText(lastMouseX, lastMouseY, null);
     }
   }
 });
@@ -190,10 +203,7 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
   resultBox = document.createElement('div');
   resultBox.id = 'gemini-translate-result-container';
   resultBox.setAttribute('data-theme', currentTheme);
-  
-  // 폰트 크기 CSS 변수 설정
   resultBox.style.setProperty('--content-font-size', currentFontSize);
-  
   resultBox.style.left = `${x + 10}px`;
   resultBox.style.top = `${y + 10}px`;
 
@@ -215,9 +225,10 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
     copyBtn.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = textOrHTML;
-      navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText || textOrHTML).then(() => {
+      const doc = new DOMParser().parseFromString(textOrHTML, 'text/html');
+      const pureText = doc.body.textContent || "";
+      
+      navigator.clipboard.writeText(pureText).then(() => {
         copyBtn.textContent = '완료';
         setTimeout(() => { copyBtn.textContent = '복사'; }, 1500);
       });
@@ -321,94 +332,40 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
 }
 
 function translateText(x, y, btnElement) {
-  let useNewTab = false;
-  let newWin = null;
-  const LONG_TEXT_THRESHOLD = 300; 
+  const LONG_TEXT_THRESHOLD = 1000; 
 
   if (selectedText.length > LONG_TEXT_THRESHOLD) {
-    useNewTab = confirm("선택한 텍스트의 양이 많습니다. 가독성을 위해 번역 결과를 새로운 탭에서 확인하시겠습니까?");
+    const useNewTab = confirm("선택한 텍스트의 양이 많습니다. 가독성을 위해 번역 결과를 새로운 탭에서 확인하시겠습니까?");
     if (useNewTab) {
-      newWin = window.open("", "_blank");
-      if (newWin) {
-        const isDark = currentTheme === 'dark';
-        const cssVars = isDark ? `
-          --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
-          --border-color: #343536; --status-color: #4da3ff;
-        ` : `
-          --bg-color: #f4f4f7; --panel-color: #ffffff; --text-main: #1a1a1b; --text-sub: #65676b;
-          --border-color: #e4e6eb; --status-color: #007bff;
-        `;
-
-        newWin.document.write(`
-          <html>
-          <head>
-            <title>번역 진행 중...</title>
-            <meta charset="utf-8">
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-              :root { ${cssVars} }
-              body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
-              .container { width: 100%; max-width: 800px; background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 30px 40px; box-sizing: border-box; }
-              .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
-              .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; }
-              .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
-              .content-box { font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px; word-break: break-word; overflow-wrap: break-word; }
-              .original { color: var(--text-sub); border-left: 4px solid var(--border-color); padding-left: 16px; margin-left: 4px; margin-bottom: 0; }
-              details { margin-bottom: 30px; }
-              details summary { cursor: pointer; user-select: none; }
-              details[open] summary { margin-bottom: 12px; }
-            </style>
-          </head>
-          <body>
-            <div class="container" id="main-container">
-              <div class="loading">번역 중... 잠시만 기다려주세요.</div>
-            </div>
-          </body>
-          </html>
-        `);
-      }
+      chrome.runtime.sendMessage({
+        action: "openResultTab",
+        payload: {
+          text: selectedHTML,
+          targetLang: currentTargetLang,
+          theme: currentTheme,
+          fontSize: currentFontSize
+        }
+      });
       if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
-    } else {
-      if (btnElement) btnElement.textContent = '번역 중...';
+      return; 
     }
-  } else {
-    if (btnElement) btnElement.textContent = '번역 중...';
   }
+
+  if (btnElement) btnElement.textContent = '번역 중...';
+  showResult('번역 중...', x, y);
 
   chrome.runtime.sendMessage({ action: "translate", text: selectedHTML, targetLang: currentTargetLang }, (response) => {
     if (chrome.runtime.lastError) {
-      if (useNewTab && newWin) {
-        newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${chrome.runtime.lastError.message}</div>`;
-      } else {
-        showResult(`오류: ${chrome.runtime.lastError.message}`, x, y);
-      }
+      showResult(`오류: ${chrome.runtime.lastError.message}`, x, y);
       return;
     }
 
     if (response.error) {
-      if (useNewTab && newWin) {
-        newWin.document.getElementById('main-container').innerHTML = `<div style="color:#ff4d4f; font-weight:bold; text-align:center; padding:40px 0;">오류: ${response.error}</div>`;
-      } else {
-        showResult(`오류: ${response.error}`, x, y);
-      }
+      showResult(`오류: ${response.error}`, x, y);
     } else {
       const prettyModelName = modelNames[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
-      
-      if (useNewTab && newWin) {
-        newWin.document.title = "Gemini 번역 결과";
-        newWin.document.getElementById('main-container').innerHTML = `
-          <div class="header">${title}</div>
-          <details>
-            <summary class="section-title">원문 보기 (클릭하여 펼치기)</summary>
-            <div class="content-box original">${selectedHTML}</div>
-          </details>
-          <div class="section-title">번역 결과</div>
-          <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
-        `;
-      } else {
-        showResult(response.result, x, y, title, true); 
-      }
+      showResult(response.result, x, y, title, true); 
     }
   });
 }

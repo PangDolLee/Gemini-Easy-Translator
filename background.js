@@ -33,8 +33,7 @@ async function fetchImageAsBase64(url) {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "gemini-translate-text") {
-    chrome.tabs.sendMessage(tab.id, { action: "showLoading" });
-    processTranslation(info.selectionText, tab.id, true, null, info.pageUrl || tab.url);
+    chrome.tabs.sendMessage(tab.id, { action: "triggerContextMenuTranslation" });
   } else if (info.menuItemId === "gemini-translate-image") {
     chrome.tabs.sendMessage(tab.id, { action: "showLoading" });
     try {
@@ -51,6 +50,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const sourceUrl = sender.tab ? sender.tab.url : "직접 입력함";
     processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
     return true; 
+  } else if (request.action === "openResultTab") {
+    // 새 탭 렌더링을 위한 데이터 임시 저장 후 탭 생성
+    chrome.storage.local.set({ pendingTranslation: request.payload }, () => {
+      chrome.tabs.create({ url: "result.html" });
+    });
+    return true;
   }
 });
 
@@ -93,9 +98,10 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
+    // 줄바꿈(\n) 및 문단 보존 규칙 명시 추가
     const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${targetLang}.
 CRITICAL RULES:
-1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
+1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks (\\n), paragraph separations, bullet points, and structures exactly as they appear in the source.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
 3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).${presetInstruction}${customPrompt}${glossaryInstruction}
 
@@ -122,12 +128,8 @@ ${textToTranslate}
 
         sendResult({ result: translatedText, model: model, lang: targetLang });
 
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = textToTranslate;
-        const pureOriginalText = tempDiv.textContent || tempDiv.innerText || textToTranslate;
-        
-        tempDiv.innerHTML = translatedText;
-        const pureTranslatedText = tempDiv.textContent || tempDiv.innerText || translatedText;
+        const pureOriginalText = textToTranslate.replace(/<[^>]*>?/gm, '').trim();
+        const pureTranslatedText = translatedText.replace(/<[^>]*>?/gm, '').trim();
 
         chrome.storage.local.get(['translationHistory'], (histData) => {
           let history = histData.translationHistory || [];
@@ -162,7 +164,7 @@ function processImageTranslation(imageData, tabId, sourceUrl) {
 CRITICAL RULES:
 1. Output ONLY the translated text.
 2. Do NOT include the original text unless it's impossible to translate (like proper nouns).
-3. Maintain the logical reading order and paragraph structure of the original image.${customPrompt}`;
+3. Maintain the logical reading order, paragraph structure, and line breaks of the original image.${customPrompt}`;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
