@@ -11,6 +11,17 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// [수정] 탭으로 메시지를 보낼 때 에러 발생을 억제하고 예외 처리하는 함수 추가
+function sendMessageToTab(tabId, message) {
+  if (tabId) {
+    chrome.tabs.sendMessage(tabId, message, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("메시지 전송 실패 (콘텐츠 스크립트 미로드 또는 비활성 탭):", chrome.runtime.lastError.message);
+      }
+    });
+  }
+}
+
 async function fetchImageAsBase64(url) {
   if (url.startsWith('data:')) {
     const [header, data] = url.split(',');
@@ -33,14 +44,15 @@ async function fetchImageAsBase64(url) {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "gemini-translate-text") {
-    chrome.tabs.sendMessage(tab.id, { action: "triggerContextMenuTranslation" });
+    sendMessageToTab(tab.id, { action: "showLoading" });
+    processTranslation(info.selectionText, tab.id, true, null, info.pageUrl || tab.url);
   } else if (info.menuItemId === "gemini-translate-image") {
-    chrome.tabs.sendMessage(tab.id, { action: "showLoading" });
+    sendMessageToTab(tab.id, { action: "showLoading" });
     try {
       const imageData = await fetchImageAsBase64(info.srcUrl);
       processImageTranslation(imageData, tab.id, info.pageUrl || tab.url);
     } catch (error) {
-      chrome.tabs.sendMessage(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
+      sendMessageToTab(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
     }
   }
 });
@@ -50,12 +62,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const sourceUrl = sender.tab ? sender.tab.url : "직접 입력함";
     processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
     return true; 
-  } else if (request.action === "openResultTab") {
-    // 새 탭 렌더링을 위한 데이터 임시 저장 후 탭 생성
-    chrome.storage.local.set({ pendingTranslation: request.payload }, () => {
-      chrome.tabs.create({ url: "result.html" });
-    });
-    return true;
   }
 });
 
@@ -64,7 +70,7 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
     
     function sendResult(resultObj) {
       if (isContextMenu && tabId) {
-        chrome.tabs.sendMessage(tabId, { action: "showResult", ...resultObj });
+        sendMessageToTab(tabId, { action: "showResult", ...resultObj });
       } else if (sendResponseCallback) {
         sendResponseCallback(resultObj);
       }
@@ -98,12 +104,12 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
-    // 줄바꿈(\n) 및 문단 보존 규칙 명시 추가
     const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${targetLang}.
 CRITICAL RULES:
-1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks (\\n), paragraph separations, bullet points, and structures exactly as they appear in the source.
+1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
-3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).${presetInstruction}${customPrompt}${glossaryInstruction}
+3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).
+4. Do NOT add any extra line breaks, <br> tags, or empty paragraphs at the end of the output.${presetInstruction}${customPrompt}${glossaryInstruction}
 
 <source_content>
 ${textToTranslate}
@@ -122,14 +128,21 @@ ${textToTranslate}
       
       if (resultData.error) {
         sendResult({ error: resultData.error.message });
+      } else if (!resultData.candidates || !resultData.candidates[0].content) {
+        sendResult({ error: "API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다." });
       } else {
         let translatedText = resultData.candidates[0].content.parts[0].text;
-        translatedText = translatedText.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
+        translatedText = translatedText.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim();
+        translatedText = translatedText.replace(/(?:<br\s*\/?>|\n|\r|\s)+$/gi, '');
 
         sendResult({ result: translatedText, model: model, lang: targetLang });
 
-        const pureOriginalText = textToTranslate.replace(/<[^>]*>?/gm, '').trim();
-        const pureTranslatedText = translatedText.replace(/<[^>]*>?/gm, '').trim();
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = textToTranslate;
+        const pureOriginalText = tempDiv.textContent || tempDiv.innerText || textToTranslate;
+        
+        tempDiv.innerHTML = translatedText;
+        const pureTranslatedText = tempDiv.textContent || tempDiv.innerText || translatedText;
 
         chrome.storage.local.get(['translationHistory'], (histData) => {
           let history = histData.translationHistory || [];
@@ -152,7 +165,7 @@ ${textToTranslate}
 function processImageTranslation(imageData, tabId, sourceUrl) {
   chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt'], async (data) => {
     if (!data.apiKey) {
-      chrome.tabs.sendMessage(tabId, { action: "showResult", error: "확장 프로그램 팝업에서 API 키를 먼저 설정하세요." });
+      sendMessageToTab(tabId, { action: "showResult", error: "확장 프로그램 팝업에서 API 키를 먼저 설정하세요." });
       return;
     }
 
@@ -164,7 +177,7 @@ function processImageTranslation(imageData, tabId, sourceUrl) {
 CRITICAL RULES:
 1. Output ONLY the translated text.
 2. Do NOT include the original text unless it's impossible to translate (like proper nouns).
-3. Maintain the logical reading order, paragraph structure, and line breaks of the original image.${customPrompt}`;
+3. Maintain the logical reading order and paragraph structure of the original image.${customPrompt}`;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
@@ -188,10 +201,12 @@ CRITICAL RULES:
       const resultData = await response.json();
       
       if (resultData.error) {
-        chrome.tabs.sendMessage(tabId, { action: "showResult", error: resultData.error.message });
+        sendMessageToTab(tabId, { action: "showResult", error: resultData.error.message });
+      } else if (!resultData.candidates || !resultData.candidates[0].content) {
+        sendMessageToTab(tabId, { action: "showResult", error: "API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다." });
       } else {
         const translatedText = resultData.candidates[0].content.parts[0].text;
-        chrome.tabs.sendMessage(tabId, { action: "showResult", result: translatedText, model: model, lang: targetLang, isHTML: false });
+        sendMessageToTab(tabId, { action: "showResult", result: translatedText, model: model, lang: targetLang, isHTML: false });
         
         chrome.storage.local.get(['translationHistory'], (histData) => {
           let history = histData.translationHistory || [];
@@ -206,7 +221,7 @@ CRITICAL RULES:
         });
       }
     } catch (error) {
-      chrome.tabs.sendMessage(tabId, { action: "showResult", error: error.toString() });
+      sendMessageToTab(tabId, { action: "showResult", error: error.toString() });
     }
   });
 }
