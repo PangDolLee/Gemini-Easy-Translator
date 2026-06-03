@@ -11,10 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const themeSelect = document.getElementById('themeSelect');
+  const fontSizeSelect = document.getElementById('fontSizeSelect');
   const apiKeyInput = document.getElementById('apiKey');
   const modelSelect = document.getElementById('modelSelect');
   const targetLangSelect = document.getElementById('targetLang');
-  const presetSelect = document.getElementById('presetSelect'); // 프리셋 추가
+  const presetSelect = document.getElementById('presetSelect');
   const customPromptInput = document.getElementById('customPrompt');
   const statusDiv = document.getElementById('status');
   
@@ -33,16 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let userDictionary = [];
   let translationHistoryArray = [];
 
-  // 데이터 로드 시 presetSelect 추가
-  chrome.storage.local.get(['themeSelect', 'apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict', 'translationHistory'], (result) => {
+  chrome.storage.local.get(['themeSelect', 'fontSizeSelect', 'apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict', 'translationHistory'], (result) => {
     if (result.themeSelect) {
       themeSelect.value = result.themeSelect;
       document.documentElement.setAttribute('data-theme', result.themeSelect);
     }
+    if (result.fontSizeSelect) fontSizeSelect.value = result.fontSizeSelect;
     if (result.apiKey) apiKeyInput.value = result.apiKey;
     if (result.modelSelect) modelSelect.value = result.modelSelect;
     if (result.targetLang) targetLangSelect.value = result.targetLang;
-    if (result.presetSelect) presetSelect.value = result.presetSelect; // 프리셋 로드
+    if (result.presetSelect) presetSelect.value = result.presetSelect;
     if (result.customPrompt) customPromptInput.value = result.customPrompt;
     if (result.userDict) {
       userDictionary = result.userDict;
@@ -52,16 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHistory(translationHistoryArray);
   });
 
-  // 자동 저장 시 presetSelect 추가
   function autoSave() {
     const selectedTheme = themeSelect.value;
     document.documentElement.setAttribute('data-theme', selectedTheme);
     chrome.storage.local.set({ 
       themeSelect: selectedTheme,
+      fontSizeSelect: fontSizeSelect.value,
       apiKey: apiKeyInput.value.trim(), 
       modelSelect: modelSelect.value, 
       targetLang: targetLangSelect.value,
-      presetSelect: presetSelect.value, // 프리셋 저장
+      presetSelect: presetSelect.value,
       customPrompt: customPromptInput.value.trim() 
     }, () => {
       statusDiv.textContent = '자동 저장됨';
@@ -70,10 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   themeSelect.addEventListener('change', autoSave);
+  fontSizeSelect.addEventListener('change', autoSave);
   apiKeyInput.addEventListener('input', autoSave);
   modelSelect.addEventListener('change', autoSave);
   targetLangSelect.addEventListener('change', autoSave);
-  presetSelect.addEventListener('change', autoSave); // 프리셋 변경 시 저장
+  presetSelect.addEventListener('change', autoSave);
   customPromptInput.addEventListener('input', autoSave);
 
   function saveDictionary() {

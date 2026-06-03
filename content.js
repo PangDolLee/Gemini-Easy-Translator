@@ -6,6 +6,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
 let currentTargetLang = '한국어';
+let currentFontSize = '14px'; // 폰트 크기 변수 추가
 let isUIInteraction = false; 
 
 const modelNames = {
@@ -17,9 +18,10 @@ const modelNames = {
   'gemini-3.5-flash': 'Gemini 3.5 Flash'
 };
 
-chrome.storage.local.get(['themeSelect', 'targetLang'], (data) => {
+chrome.storage.local.get(['themeSelect', 'targetLang', 'fontSizeSelect'], (data) => {
   if (data.themeSelect) currentTheme = data.themeSelect;
   if (data.targetLang) currentTargetLang = data.targetLang;
+  if (data.fontSizeSelect) currentFontSize = data.fontSizeSelect;
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -31,6 +33,12 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
     if (changes.targetLang) {
       currentTargetLang = changes.targetLang.newValue;
+    }
+    if (changes.fontSizeSelect) {
+      currentFontSize = changes.fontSizeSelect.newValue;
+      if (resultBox) {
+        resultBox.style.setProperty('--content-font-size', currentFontSize);
+      }
     }
   }
 });
@@ -182,6 +190,10 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
   resultBox = document.createElement('div');
   resultBox.id = 'gemini-translate-result-container';
   resultBox.setAttribute('data-theme', currentTheme);
+  
+  // 폰트 크기 CSS 변수 설정
+  resultBox.style.setProperty('--content-font-size', currentFontSize);
+  
   resultBox.style.left = `${x + 10}px`;
   resultBox.style.top = `${y + 10}px`;
 
@@ -340,7 +352,7 @@ function translateText(x, y, btnElement) {
               .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
               .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; }
               .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
-              .content-box { font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px; word-break: break-word; overflow-wrap: break-word; }
+              .content-box { font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px; word-break: break-word; overflow-wrap: break-word; }
               .original { color: var(--text-sub); border-left: 4px solid var(--border-color); padding-left: 16px; margin-left: 4px; margin-bottom: 0; }
               details { margin-bottom: 30px; }
               details summary { cursor: pointer; user-select: none; }
