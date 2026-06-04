@@ -11,7 +11,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// [수정] 탭으로 메시지를 보낼 때 에러 발생을 억제하고 예외 처리하는 함수 추가
 function sendMessageToTab(tabId, message) {
   if (tabId) {
     chrome.tabs.sendMessage(tabId, message, () => {
@@ -84,6 +83,14 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
     const model = data.modelSelect || 'gemini-3.5-flash';
     const targetLang = requestedLang || data.targetLang || '한국어';
     
+    const langMap = {
+      '한국어': 'Korean',
+      '영어': 'English',
+      '일본어': 'Japanese',
+      '중국어': 'Simplified Chinese'
+    };
+    const promptLang = langMap[targetLang] || targetLang;
+    
     const presetPrompts = {
       'none': "",
       'summary': "Summarize the text in exactly 3 bullet points in the target language.",
@@ -104,12 +111,13 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       });
     }
     
-    const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${targetLang}.
+    const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${promptLang}.
 CRITICAL RULES:
 1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
 3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).
-4. Do NOT add any extra line breaks, <br> tags, or empty paragraphs at the end of the output.${presetInstruction}${customPrompt}${glossaryInstruction}
+4. Do NOT add any extra line breaks, <br> tags, or empty paragraphs at the end of the output.
+5. If the source content contains multiple paragraphs or line breaks, you MUST maintain them in the output using <p> or <br> tags. DO NOT merge separate paragraphs into a single continuous block.${presetInstruction}${customPrompt}${glossaryInstruction}
 
 <source_content>
 ${textToTranslate}
@@ -171,9 +179,18 @@ function processImageTranslation(imageData, tabId, sourceUrl) {
 
     const model = data.modelSelect || 'gemini-3.5-flash';
     const targetLang = data.targetLang || '한국어';
+    
+    const langMap = {
+      '한국어': 'Korean',
+      '영어': 'English',
+      '일본어': 'Japanese',
+      '중국어': 'Simplified Chinese'
+    };
+    const promptLang = langMap[targetLang] || targetLang;
+
     const customPrompt = data.customPrompt ? `\nAdditional Instructions: ${data.customPrompt}` : '';
 
-    const prompt = `You are a professional translator and OCR expert. Extract all readable text from the provided image and translate it into ${targetLang}.
+    const prompt = `You are a professional translator and OCR expert. Extract all readable text from the provided image and translate it into ${promptLang}.
 CRITICAL RULES:
 1. Output ONLY the translated text.
 2. Do NOT include the original text unless it's impossible to translate (like proper nouns).
