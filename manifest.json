@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Easy Translator",
-  "version": "1.0",
+  "version": "1.1",
   "permissions": ["storage", "activeTab", "contextMenus"],
   "host_permissions": ["<all_urls>", "https://generativelanguage.googleapis.com/*"],
   "action": {

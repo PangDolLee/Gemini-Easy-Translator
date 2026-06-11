@@ -145,12 +145,12 @@ ${textToTranslate}
 
         sendResult({ result: translatedText, model: model, lang: targetLang });
 
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = textToTranslate;
-        const pureOriginalText = tempDiv.textContent || tempDiv.innerText || textToTranslate;
+        const stripHtml = (html) => {
+          return (html || '').replace(/<[^>]*>?/gm, '').trim();
+        };
         
-        tempDiv.innerHTML = translatedText;
-        const pureTranslatedText = tempDiv.textContent || tempDiv.innerText || translatedText;
+        const pureOriginalText = stripHtml(textToTranslate) || textToTranslate;
+        const pureTranslatedText = stripHtml(translatedText) || translatedText;
 
         chrome.storage.local.get(['translationHistory'], (histData) => {
           let history = histData.translationHistory || [];
