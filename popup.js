@@ -284,3 +284,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const manifest = chrome.runtime.getManifest();
+    const versionContainer = document.getElementById('programVersion');
+    if (versionContainer && manifest && manifest.version) {
+      versionContainer.textContent = `버전: v${manifest.version}`;
+    }
+  } catch (error) {
+    console.error('버전 정보 로드 실패:', error);
+  }
+});
