@@ -116,7 +116,7 @@ CRITICAL RULES:
 1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
 3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).
-4. Do NOT add any extra line breaks, <br> tags, or empty paragraphs at the end of the output.
+4. ABSOLUTELY DO NOT add any extra line breaks (\n), <br> tags, or empty <p> tags. Maintain the exact same block element structure as the source. Do not arbitrarily wrap unwrapped text in new tags.
 5. If the source content contains multiple paragraphs or line breaks, you MUST maintain them in the output using <p> or <br> tags. DO NOT merge separate paragraphs into a single continuous block.${presetInstruction}${customPrompt}${glossaryInstruction}
 
 <source_content>
@@ -141,6 +141,7 @@ ${textToTranslate}
       } else {
         let translatedText = resultData.candidates[0].content.parts[0].text;
         translatedText = translatedText.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim();
+        translatedText = translatedText.replace(/<(p|div)[^>]*>(\s|<br\s*\/?>|&nbsp;)*<\/\1>/gi, '');
         translatedText = translatedText.replace(/(?:<br\s*\/?>|\n|\r|\s)+$/gi, '');
 
         sendResult({ result: translatedText, model: model, lang: targetLang });

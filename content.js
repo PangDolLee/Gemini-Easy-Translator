@@ -98,7 +98,7 @@ function initShadowDOM() {
       #gemini-translate-result-header span { font-family: inherit; color: inherit; font-size: inherit; font-weight: inherit; margin: 0; padding: 0; }
       #gemini-translate-result-content {
         padding: 12px 16px; font-size: var(--content-font-size, 14px); line-height: 1.6; color: var(--text-main);
-        word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; /* 순수 줄바꿈 문자(\n) 인식 */
+        word-break: break-word; overflow-wrap: break-word; white-space: normal; /* pre-wrap 제거 및 normal 적용 */
         background-color: var(--panel-color); box-sizing: border-box; flex: 1; overflow-y: auto;
       }
       #gemini-translate-result-content p,
