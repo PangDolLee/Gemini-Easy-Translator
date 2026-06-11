@@ -146,7 +146,9 @@ ${textToTranslate}
         sendResult({ result: translatedText, model: model, lang: targetLang });
 
         const stripHtml = (html) => {
-          return (html || '').replace(/<[^>]*>?/gm, '').trim();
+          if (!html) return '';
+          let textWithAlt = html.replace(/<img[^>]+alt=(["'])(.*?)\1[^>]*>/gi, '$2');
+          return textWithAlt.replace(/<[^>]*>?/gm, '').trim();
         };
         
         const pureOriginalText = stripHtml(textToTranslate) || textToTranslate;

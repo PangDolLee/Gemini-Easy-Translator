@@ -111,6 +111,19 @@ function initShadowDOM() {
       #gemini-translate-result-content *:last-child {
         margin-bottom: 0 !important;
       }
+      #gemini-translate-result-content img {
+        max-width: 100%;
+        height: auto;
+      }
+      #gemini-translate-result-content img.emoji,
+      #gemini-translate-result-content img[src*="emoji"],
+      #gemini-translate-result-content img[alt^="twemoji"] {
+        height: 1.2em !important;
+        width: 1.2em !important;
+        vertical-align: -0.2em !important;
+        margin: 0 0.1em !important;
+        display: inline-block !important;
+      }
       #gemini-translate-copy-btn, #gemini-translate-close-btn {
         all: initial; background-color: var(--panel-color); color: var(--text-sub); border: 1px solid var(--border-color); border-radius: 4px;
         padding: 4px 8px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: "Noto Sans KR", "Noto Sans", sans-serif;
