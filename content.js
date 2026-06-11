@@ -102,13 +102,15 @@ function initShadowDOM() {
         background-color: var(--panel-color); box-sizing: border-box; flex: 1; overflow-y: auto;
       }
       #gemini-translate-result-content p,
-      #gemini-translate-result-content div,
       #gemini-translate-result-content ul,
       #gemini-translate-result-content ol {
-        margin-top: 0; margin-bottom: 10px;
+        margin-top: 0; margin-bottom: 8px;
+      }
+      #gemini-translate-result-content div {
+        margin: 0; 
       }
       #gemini-translate-result-content > *:first-child { margin-top: 0 !important; }
-      #gemini-translate-result-content *:last-child {
+      #gemini-translate-result-content > *:last-child {
         margin-bottom: 0 !important;
       }
       #gemini-translate-result-content img {
@@ -222,8 +224,10 @@ document.addEventListener('mouseup', (e) => {
       const clonedSelection = range.cloneContents();
       const div = document.createElement('div');
       div.appendChild(clonedSelection);
-      // 끝에 포함된 불필요한 <br> 태그, 줄바꿈, 공백 사전 제거
-      selectedHTML = div.innerHTML.replace(/(?:<br\s*\/?>|\n|\r|\s)+$/gi, '');
+
+      let tempHTML = div.innerHTML;
+      tempHTML = tempHTML.replace(/(<(?!\/)[^>]+>)+(?:\s|&nbsp;|<br\s*\/?>)*(<\/[^>]+>)+$/gi, '');
+      selectedHTML = tempHTML.replace(/(?:<br\s*\/?>|\n|\r|\s|&nbsp;)+$/gi, '').trim();
 
       showButton(e.pageX, e.pageY);
     } else {
