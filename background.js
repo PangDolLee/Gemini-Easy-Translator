@@ -128,21 +128,34 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } else if (info.menuItemId === "gemini-translate-image") {
     sendMessageToTab(tab.id, { action: "showLoading" });
     try {
-      const imageData = await fetchImageAsBase64(info.srcUrl);
+      const imageData = await fetchImageAsBase64(info.srcUrl, info.pageUrl || tab.url);
       processImageTranslation(imageData, tab.id, info.pageUrl || tab.url);
     } catch (error) {
-      sendMessageToTab(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
+      const message = error && error.status === 403
+        ? "이미지 서버가 요청을 거부했습니다. (핫링크/리퍼러 차단, HTTP 403)"
+        : "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)";
+      sendMessageToTab(tab.id, { action: "showResult", error: message });
     }
   }
 });
 
-async function fetchImageAsBase64(url) {
+async function fetchImageAsBase64(url, refererUrl) {
   if (url.startsWith('data:')) {
     const [header, data] = url.split(',');
     const mimeType = header.split(':')[1].split(';')[0];
     return { mimeType, data };
   }
-  const response = await fetch(url);
+  // pixiv 등 일부 사이트는 Referer 헤더로 핫링크를 차단하므로,
+  // 이미지를 클릭한 실제 페이지 URL을 리퍼러로 지정해 요청한다.
+  const response = await fetch(url, {
+    referrer: refererUrl || '',
+    referrerPolicy: 'strict-origin-when-cross-origin'
+  });
+  if (!response.ok) {
+    const error = new Error(`이미지 요청 실패 (HTTP ${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
