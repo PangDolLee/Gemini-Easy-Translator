@@ -124,9 +124,12 @@ ${textToTranslate}
 </source_content>`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': data.apiKey
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }]
         })
@@ -200,9 +203,12 @@ CRITICAL RULES:
 3. Maintain the logical reading order and paragraph structure of the original image.${customPrompt}`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${data.apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': data.apiKey
+        },
         body: JSON.stringify({
           contents: [{
             parts: [
