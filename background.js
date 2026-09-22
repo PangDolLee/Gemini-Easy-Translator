@@ -1,7 +1,7 @@
 importScripts('constants.js', 'utils.js');
 
 const { LANG_MAP, PRESET_PROMPTS, DEFAULT_MODEL, DEFAULT_TARGET_LANG } = self.GeminiTranslatorConstants;
-const { cleanupTranslatedHtml, stripHtml } = self.GeminiTranslatorUtils;
+const { cleanupTranslatedHtml, stripHtml, buildNumberedListPrompt, parseNumberedList } = self.GeminiTranslatorUtils;
 
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_RETRIES = 2;
@@ -34,6 +34,11 @@ chrome.runtime.onInstalled.addListener(() => {
       id: "gemini-translate-image",
       title: "Gemini로 이미지 번역",
       contexts: ["image"]
+    });
+    chrome.contextMenus.create({
+      id: "gemini-translate-page",
+      title: "Gemini로 이 페이지 전체 번역",
+      contexts: ["page"]
     });
   });
 });
@@ -160,6 +165,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         : "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)";
       sendMessageToTab(tab.id, { action: "showResult", error: message });
     }
+  } else if (info.menuItemId === "gemini-translate-page") {
+    chrome.storage.local.get(['targetLang'], (data) => {
+      sendMessageToTab(tab.id, { action: "translatePage", targetLang: data.targetLang || DEFAULT_TARGET_LANG });
+    });
   }
 });
 
@@ -199,7 +208,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
     return true;
   }
+  if (request.action === "translateBatch") {
+    processBatchTranslation(request.texts, request.targetLang, sendResponse);
+    return true;
+  }
 });
+
+// 페이지 전체 번역: HTML 서식 보존 없이 순수 텍스트 목록을 번호 매겨 한 번에 번역한다.
+function processBatchTranslation(texts, requestedLang, sendResponseCallback) {
+  chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang'], async (data) => {
+    if (!data.apiKey) {
+      sendResponseCallback({ error: "확장 프로그램 팝업에서 API 키를 먼저 설정하세요." });
+      return;
+    }
+    if (!Array.isArray(texts) || texts.length === 0) {
+      sendResponseCallback({ translations: [] });
+      return;
+    }
+
+    const model = data.modelSelect || DEFAULT_MODEL;
+    const targetLang = requestedLang || data.targetLang || DEFAULT_TARGET_LANG;
+    const promptLang = LANG_MAP[targetLang] || targetLang;
+    const prompt = buildNumberedListPrompt(texts, promptLang);
+
+    try {
+      const rawText = await callGeminiApi(model, data.apiKey, [{ text: prompt }]);
+      const translations = parseNumberedList(rawText, texts.length);
+      sendResponseCallback({ translations });
+    } catch (error) {
+      sendResponseCallback({ error: error.message || error.toString() });
+    }
+  });
+}
 
 function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseCallback = null, sourceUrl = "직접 입력함", requestedLang = null) {
   chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict'], async (data) => {

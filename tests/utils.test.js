@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { cleanupTranslatedHtml, stripHtml } = require('../utils.js');
+const { cleanupTranslatedHtml, stripHtml, parseNumberedList } = require('../utils.js');
 
 test('cleanupTranslatedHtml strips markdown code fences', () => {
   const input = '```html\n<p>안녕하세요</p>\n```';
@@ -33,4 +33,24 @@ test('stripHtml keeps alt text from img tags', () => {
 test('stripHtml returns empty string for falsy input', () => {
   assert.equal(stripHtml(''), '');
   assert.equal(stripHtml(undefined), '');
+});
+
+test('parseNumberedList maps translated lines back to original order', () => {
+  const raw = '1. 안녕\n2. 세계\n3. 좋은 아침';
+  assert.deepEqual(parseNumberedList(raw, 3), ['안녕', '세계', '좋은 아침']);
+});
+
+test('parseNumberedList leaves unparsed slots as null', () => {
+  const raw = '1. 안녕\n설명 문구\n3. 좋은 아침';
+  assert.deepEqual(parseNumberedList(raw, 3), ['안녕', null, '좋은 아침']);
+});
+
+test('parseNumberedList ignores out-of-range indices', () => {
+  const raw = '1. 안녕\n5. 범위 밖';
+  assert.deepEqual(parseNumberedList(raw, 2), ['안녕', null]);
+});
+
+test('parseNumberedList returns all-null array for empty input', () => {
+  assert.deepEqual(parseNumberedList('', 2), [null, null]);
+  assert.deepEqual(parseNumberedList(null, 2), [null, null]);
 });
