@@ -1,13 +1,40 @@
+importScripts('constants.js', 'utils.js');
+
+const { LANG_MAP, PRESET_PROMPTS, DEFAULT_MODEL, DEFAULT_TARGET_LANG } = self.GeminiTranslatorConstants;
+const { cleanupTranslatedHtml, stripHtml } = self.GeminiTranslatorUtils;
+
+const REQUEST_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 2;
+const MAX_CACHE_SIZE = 30;
+const MAX_CACHEABLE_TEXT_LENGTH = 5000;
+
+const translationCache = new Map();
+
+function getCachedResult(key) {
+  return translationCache.get(key);
+}
+
+function setCachedResult(key, value) {
+  if (translationCache.has(key)) translationCache.delete(key);
+  translationCache.set(key, value);
+  if (translationCache.size > MAX_CACHE_SIZE) {
+    const oldestKey = translationCache.keys().next().value;
+    translationCache.delete(oldestKey);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "gemini-translate-text",
-    title: "Gemini로 텍스트 번역",
-    contexts: ["selection"]
-  });
-  chrome.contextMenus.create({
-    id: "gemini-translate-image",
-    title: "Gemini로 이미지 번역",
-    contexts: ["image"]
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "gemini-translate-text",
+      title: "Gemini로 텍스트 번역",
+      contexts: ["selection"]
+    });
+    chrome.contextMenus.create({
+      id: "gemini-translate-image",
+      title: "Gemini로 이미지 번역",
+      contexts: ["image"]
+    });
   });
 });
 
@@ -20,6 +47,94 @@ function sendMessageToTab(tabId, message) {
     });
   }
 }
+
+async function fetchWithRetry(url, options) {
+  let lastError;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const isRetryableStatus = response.status === 429 || response.status >= 500;
+      if (isRetryableStatus && attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      if (error.name === 'AbortError') {
+        lastError = new Error('요청 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.');
+        break;
+      }
+      if (attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+        continue;
+      }
+    }
+  }
+  throw lastError || new Error('알 수 없는 오류로 요청에 실패했습니다.');
+}
+
+async function callGeminiApi(model, apiKey, parts) {
+  const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify({ contents: [{ parts }] })
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+    }
+    let message = `API 요청에 실패했습니다. (HTTP ${response.status})`;
+    try {
+      const errBody = await response.json();
+      if (errBody?.error?.message) message = errBody.error.message;
+    } catch (e) {
+      // 응답 본문이 JSON이 아닌 경우 기본 메시지를 사용
+    }
+    throw new Error(message);
+  }
+
+  const resultData = await response.json();
+  if (resultData.error) {
+    throw new Error(resultData.error.message);
+  }
+  if (!resultData.candidates || !resultData.candidates[0].content) {
+    throw new Error('API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다.');
+  }
+  return resultData.candidates[0].content.parts[0].text;
+}
+
+function pushHistory(entry) {
+  chrome.storage.local.get(['translationHistory'], (histData) => {
+    let history = histData.translationHistory || [];
+    history.unshift(entry);
+    if (history.length > 50) history = history.slice(0, 50);
+    chrome.storage.local.set({ translationHistory: history });
+  });
+}
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "gemini-translate-text") {
+    sendMessageToTab(tab.id, { action: "showLoading" });
+    processTranslation(info.selectionText, tab.id, true, null, info.pageUrl || tab.url);
+  } else if (info.menuItemId === "gemini-translate-image") {
+    sendMessageToTab(tab.id, { action: "showLoading" });
+    try {
+      const imageData = await fetchImageAsBase64(info.srcUrl);
+      processImageTranslation(imageData, tab.id, info.pageUrl || tab.url);
+    } catch (error) {
+      sendMessageToTab(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
+    }
+  }
+});
 
 async function fetchImageAsBase64(url) {
   if (url.startsWith('data:')) {
@@ -41,32 +156,17 @@ async function fetchImageAsBase64(url) {
   });
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "gemini-translate-text") {
-    sendMessageToTab(tab.id, { action: "showLoading" });
-    processTranslation(info.selectionText, tab.id, true, null, info.pageUrl || tab.url);
-  } else if (info.menuItemId === "gemini-translate-image") {
-    sendMessageToTab(tab.id, { action: "showLoading" });
-    try {
-      const imageData = await fetchImageAsBase64(info.srcUrl);
-      processImageTranslation(imageData, tab.id, info.pageUrl || tab.url);
-    } catch (error) {
-      sendMessageToTab(tab.id, { action: "showResult", error: "이미지를 가져올 수 없습니다. (CORS 또는 보안 제한)" });
-    }
-  }
-});
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "translate") {
     const sourceUrl = sender.tab ? sender.tab.url : "직접 입력함";
     processTranslation(request.text, sender.tab ? sender.tab.id : null, false, sendResponse, sourceUrl, request.targetLang);
-    return true; 
+    return true;
   }
 });
 
 function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseCallback = null, sourceUrl = "직접 입력함", requestedLang = null) {
   chrome.storage.local.get(['apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict'], async (data) => {
-    
+
     function sendResult(resultObj) {
       if (isContextMenu && tabId) {
         sendMessageToTab(tabId, { action: "showResult", ...resultObj });
@@ -80,29 +180,14 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       return;
     }
 
-    const model = data.modelSelect || 'gemini-3.5-flash';
-    const targetLang = requestedLang || data.targetLang || '한국어';
-    
-    const langMap = {
-      '한국어': 'Korean',
-      '영어': 'English',
-      '일본어': 'Japanese',
-      '중국어': 'Simplified Chinese'
-    };
-    const promptLang = langMap[targetLang] || targetLang;
-    
-    const presetPrompts = {
-      'none': "",
-      'summary': "Summarize the text in exactly 3 bullet points in the target language.",
-      'business': "Use a formal and professional business tone (e.g., 하십시오체 in Korean).",
-      'polite': "Use a standard polite and friendly tone (e.g., 해요체 in Korean).",
-      'informal': "Use a casual and informal tone (e.g., 반말 in Korean)."
-    };
+    const model = data.modelSelect || DEFAULT_MODEL;
+    const targetLang = requestedLang || data.targetLang || DEFAULT_TARGET_LANG;
+    const promptLang = LANG_MAP[targetLang] || targetLang;
 
     const selectedPreset = data.presetSelect || 'none';
-    const presetInstruction = presetPrompts[selectedPreset] ? `\nStyle Instruction: ${presetPrompts[selectedPreset]}` : "";
+    const presetInstruction = PRESET_PROMPTS[selectedPreset] ? `\nStyle Instruction: ${PRESET_PROMPTS[selectedPreset]}` : "";
     const customPrompt = data.customPrompt ? `\nAdditional Instructions: ${data.customPrompt}` : '';
-    
+
     let glossaryInstruction = '';
     if (data.userDict && data.userDict.length > 0) {
       glossaryInstruction = "\n\nCRITICAL RULE - GLOSSARY:\nYou MUST translate the following specific terms exactly as provided below:\n";
@@ -110,7 +195,29 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
         glossaryInstruction += `- "${item.key}" -> "${item.val}"\n`;
       });
     }
-    
+
+    const cacheKey = textToTranslate.length <= MAX_CACHEABLE_TEXT_LENGTH
+      ? JSON.stringify({ model, promptLang, selectedPreset, customPrompt: data.customPrompt || '', userDict: data.userDict || [], textToTranslate })
+      : null;
+
+    function recordHistoryAndRespond(translatedText) {
+      sendResult({ result: translatedText, model, lang: targetLang });
+
+      const pureOriginalText = stripHtml(textToTranslate) || textToTranslate;
+      const pureTranslatedText = stripHtml(translatedText) || translatedText;
+      pushHistory({
+        original: pureOriginalText,
+        translated: pureTranslatedText,
+        timestamp: new Date().getTime(),
+        url: sourceUrl
+      });
+    }
+
+    if (cacheKey && translationCache.has(cacheKey)) {
+      recordHistoryAndRespond(getCachedResult(cacheKey));
+      return;
+    }
+
     const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${promptLang}.
 CRITICAL RULES:
 1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
@@ -124,54 +231,13 @@ ${textToTranslate}
 </source_content>`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': data.apiKey
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
+      const rawText = await callGeminiApi(model, data.apiKey, [{ text: prompt }]);
+      const translatedText = cleanupTranslatedHtml(rawText);
 
-      const resultData = await response.json();
-      
-      if (resultData.error) {
-        sendResult({ error: resultData.error.message });
-      } else if (!resultData.candidates || !resultData.candidates[0].content) {
-        sendResult({ error: "API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다." });
-      } else {
-        let translatedText = resultData.candidates[0].content.parts[0].text;
-        translatedText = translatedText.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim();
-        translatedText = translatedText.replace(/<(p|div)[^>]*>(\s|<br\s*\/?>|&nbsp;)*<\/\1>/gi, '');
-        translatedText = translatedText.replace(/(?:<br\s*\/?>|\n|\r|\s)+$/gi, '');
-
-        sendResult({ result: translatedText, model: model, lang: targetLang });
-
-        const stripHtml = (html) => {
-          if (!html) return '';
-          let textWithAlt = html.replace(/<img[^>]+alt=(["'])(.*?)\1[^>]*>/gi, '$2');
-          return textWithAlt.replace(/<[^>]*>?/gm, '').trim();
-        };
-        
-        const pureOriginalText = stripHtml(textToTranslate) || textToTranslate;
-        const pureTranslatedText = stripHtml(translatedText) || translatedText;
-
-        chrome.storage.local.get(['translationHistory'], (histData) => {
-          let history = histData.translationHistory || [];
-          history.unshift({
-            original: pureOriginalText,
-            translated: pureTranslatedText,
-            timestamp: new Date().getTime(),
-            url: sourceUrl
-          });
-          if (history.length > 50) history = history.slice(0, 50);
-          chrome.storage.local.set({ translationHistory: history });
-        });
-      }
+      if (cacheKey) setCachedResult(cacheKey, translatedText);
+      recordHistoryAndRespond(translatedText);
     } catch (error) {
-      sendResult({ error: error.toString() });
+      sendResult({ error: error.message || error.toString() });
     }
   });
 }
@@ -183,17 +249,9 @@ function processImageTranslation(imageData, tabId, sourceUrl) {
       return;
     }
 
-    const model = data.modelSelect || 'gemini-3.5-flash';
-    const targetLang = data.targetLang || '한국어';
-    
-    const langMap = {
-      '한국어': 'Korean',
-      '영어': 'English',
-      '일본어': 'Japanese',
-      '중국어': 'Simplified Chinese'
-    };
-    const promptLang = langMap[targetLang] || targetLang;
-
+    const model = data.modelSelect || DEFAULT_MODEL;
+    const targetLang = data.targetLang || DEFAULT_TARGET_LANG;
+    const promptLang = LANG_MAP[targetLang] || targetLang;
     const customPrompt = data.customPrompt ? `\nAdditional Instructions: ${data.customPrompt}` : '';
 
     const prompt = `You are a professional translator and OCR expert. Extract all readable text from the provided image and translate it into ${promptLang}.
@@ -203,51 +261,20 @@ CRITICAL RULES:
 3. Maintain the logical reading order and paragraph structure of the original image.${customPrompt}`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': data.apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: imageData.mimeType,
-                  data: imageData.data
-                }
-              }
-            ]
-          }]
-        })
-      });
+      const translatedText = await callGeminiApi(model, data.apiKey, [
+        { text: prompt },
+        { inlineData: { mimeType: imageData.mimeType, data: imageData.data } }
+      ]);
 
-      const resultData = await response.json();
-      
-      if (resultData.error) {
-        sendMessageToTab(tabId, { action: "showResult", error: resultData.error.message });
-      } else if (!resultData.candidates || !resultData.candidates[0].content) {
-        sendMessageToTab(tabId, { action: "showResult", error: "API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다." });
-      } else {
-        const translatedText = resultData.candidates[0].content.parts[0].text;
-        sendMessageToTab(tabId, { action: "showResult", result: translatedText, model: model, lang: targetLang, isHTML: false });
-        
-        chrome.storage.local.get(['translationHistory'], (histData) => {
-          let history = histData.translationHistory || [];
-          history.unshift({
-            original: "[이미지에서 텍스트 추출 됨]",
-            translated: translatedText,
-            timestamp: new Date().getTime(),
-            url: sourceUrl
-          });
-          if (history.length > 50) history = history.slice(0, 50);
-          chrome.storage.local.set({ translationHistory: history });
-        });
-      }
+      sendMessageToTab(tabId, { action: "showResult", result: translatedText, model, lang: targetLang, isHTML: false });
+      pushHistory({
+        original: "[이미지에서 텍스트 추출 됨]",
+        translated: translatedText,
+        timestamp: new Date().getTime(),
+        url: sourceUrl
+      });
     } catch (error) {
-      sendMessageToTab(tabId, { action: "showResult", error: error.toString() });
+      sendMessageToTab(tabId, { action: "showResult", error: error.message || error.toString() });
     }
   });
 }

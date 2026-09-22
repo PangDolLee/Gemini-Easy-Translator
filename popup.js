@@ -34,6 +34,24 @@ document.addEventListener('DOMContentLoaded', () => {
   let userDictionary = [];
   let translationHistoryArray = [];
 
+  const { MODEL_NAMES, LANGS, DEFAULT_MODEL, DEFAULT_TARGET_LANG } = GeminiTranslatorConstants;
+
+  LANGS.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang;
+    option.textContent = lang;
+    targetLangSelect.appendChild(option);
+  });
+  targetLangSelect.value = DEFAULT_TARGET_LANG;
+
+  Object.entries(MODEL_NAMES).forEach(([id, label]) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    modelSelect.appendChild(option);
+  });
+  modelSelect.value = DEFAULT_MODEL;
+
   chrome.storage.local.get(['themeSelect', 'fontSizeSelect', 'apiKey', 'modelSelect', 'targetLang', 'presetSelect', 'customPrompt', 'userDict', 'translationHistory'], (result) => {
     if (result.themeSelect) {
       themeSelect.value = result.themeSelect;

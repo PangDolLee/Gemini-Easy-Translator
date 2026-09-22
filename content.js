@@ -11,14 +11,7 @@ let currentTargetLang = '한국어';
 let currentFontSize = '14px';
 let isUIInteraction = false; 
 
-const modelNames = {
-  'gemini-2.5-pro': 'Gemini 2.5 Pro',
-  'gemini-3.1-pro': 'Gemini 3.1 Pro',
-  'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
-  'gemini-2.5-flash': 'Gemini 2.5 Flash',
-  'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
-  'gemini-3.5-flash': 'Gemini 3.5 Flash'
-};
+const { MODEL_NAMES, LANGS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
 
 // [수정] Shadow DOM 초기화 및 스타일 격리
 function initShadowDOM() {
@@ -181,7 +174,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.error) {
       showResult(`오류: ${request.error}`, lastMouseX, lastMouseY);
     } else {
-      const prettyModelName = modelNames[request.model] || request.model;
+      const prettyModelName = MODEL_NAMES[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
       showResult(request.result, lastMouseX, lastMouseY, title, true); 
     }
@@ -262,7 +255,7 @@ function showButton(x, y) {
   const optionsList = document.createElement('ul');
   optionsList.id = 'gemini-translate-options-list';
   
-  const langs = ['한국어', '영어', '일본어', '중국어'];
+  const langs = LANGS;
   langs.forEach(lang => {
     const li = document.createElement('li');
     li.textContent = lang;
@@ -460,7 +453,6 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
 function translateText(x, y, btnElement) {
   let useNewTab = false;
   let newWin = null;
-  const LONG_TEXT_THRESHOLD = 1000; 
 
   if (selectedText.length > LONG_TEXT_THRESHOLD) {
     useNewTab = confirm("선택한 텍스트의 양이 많습니다. 가독성을 위해 번역 결과를 새로운 탭에서 확인하시겠습니까?");
@@ -529,7 +521,7 @@ function translateText(x, y, btnElement) {
         showResult(`오류: ${response.error}`, x, y);
       }
     } else {
-      const prettyModelName = modelNames[response.model] || response.model;
+      const prettyModelName = MODEL_NAMES[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
       
       if (useNewTab && newWin) {

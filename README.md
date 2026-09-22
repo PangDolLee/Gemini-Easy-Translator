@@ -36,3 +36,9 @@ Google Gemini API를 활용하여 웹페이지 내에서 드래그한 텍스트 
 
 * **로컬 저장 방식:** 사용자가 입력한 API Key, 설정값, 번역 기록 등 모든 데이터는 외부 서버로 수집되지 않으며, 오직 사용자의 브라우저 로컬 저장소(`chrome.storage.local`)에만 저장됩니다. 단, 별도의 암호화 없이 평문으로 저장되므로 공용 PC 등 타인이 접근 가능한 환경에서는 주의가 필요합니다.
 * **API 통신:** 번역 요청은 HTTPS를 통해 Google의 공식 Gemini API 서버로만 전송되며, API Key는 URL이 아닌 요청 헤더(`x-goog-api-key`)로 전달되어 로그에 노출되지 않도록 처리합니다.
+
+## 개발
+
+* `constants.js`, `utils.js`는 background/content/popup 스크립트가 공유하는 모델·언어 목록 및 순수 함수를 담고 있습니다.
+* 단위 테스트: `npm test` (Node.js 내장 `node --test` 사용, 별도 설치 불필요)
+* 린트: `npm install` 후 `npm run lint` (ESLint)
