@@ -78,19 +78,28 @@ async function fetchWithRetry(url, options) {
   throw lastError || new Error('알 수 없는 오류로 요청에 실패했습니다.');
 }
 
-async function callGeminiApi(model, apiKey, parts) {
+async function requestGeminiContent(model, apiKey, parts, useThinkingConfig) {
+  const body = { contents: [{ parts }] };
+  if (useThinkingConfig) {
+    // 번역/OCR은 다단계 추론이 필요 없는 작업이므로 thinking을 꺼서
+    // Flash 모델에서 불필요하게 응답이 지연되는 것을 방지한다.
+    body.generationConfig = { thinkingConfig: { thinkingBudget: 0 } };
+  }
+
   const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': apiKey
     },
-    body: JSON.stringify({ contents: [{ parts }] })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
     if (response.status === 429) {
-      throw new Error('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+      const error = new Error('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+      error.status = 429;
+      throw error;
     }
     let message = `API 요청에 실패했습니다. (HTTP ${response.status})`;
     try {
@@ -99,7 +108,9 @@ async function callGeminiApi(model, apiKey, parts) {
     } catch (e) {
       // 응답 본문이 JSON이 아닌 경우 기본 메시지를 사용
     }
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   const resultData = await response.json();
@@ -110,6 +121,19 @@ async function callGeminiApi(model, apiKey, parts) {
     throw new Error('API 응답이 유효하지 않거나 안전성 정책에 의해 차단되었습니다.');
   }
   return resultData.candidates[0].content.parts[0].text;
+}
+
+async function callGeminiApi(model, apiKey, parts) {
+  try {
+    return await requestGeminiContent(model, apiKey, parts, true);
+  } catch (error) {
+    // 일부 모델이 thinkingConfig 필드를 지원하지 않아 400을 반환하는 경우에만
+    // 해당 옵션 없이 한 번 더 시도한다(속도 최적화가 요청 자체를 막지 않도록).
+    if (error.status === 400) {
+      return requestGeminiContent(model, apiKey, parts, false);
+    }
+    throw error;
+  }
 }
 
 function pushHistory(entry) {
