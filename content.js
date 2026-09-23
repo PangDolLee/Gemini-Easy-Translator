@@ -8,8 +8,9 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let currentTheme = 'light';
 let currentTargetLang = '한국어';
+let currentPreset = 'none';
 let currentFontSize = '14px';
-let isUIInteraction = false; 
+let isUIInteraction = false;
 
 const { MODEL_NAMES, LANGS, PRESET_LABELS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
 
@@ -42,35 +43,35 @@ function initShadowDOM() {
         background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: 8px;
         padding: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); box-sizing: border-box;
       }
-      #gemini-translate-custom-select {
+      .gemini-translate-custom-select {
         all: initial; position: relative; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif; box-sizing: border-box;
       }
-      #gemini-translate-select-trigger {
+      .gemini-translate-select-trigger {
         all: initial; display: flex; justify-content: space-between; align-items: center; font-family: inherit; font-size: 13px;
         font-weight: 500; color: var(--text-main); background-color: var(--bg-color); border: 1px solid var(--border-color);
         border-radius: 4px; padding: 4px 8px; cursor: pointer; line-height: 1.2; box-sizing: border-box; min-width: 72px;
         transition: background-color 0.2s, border-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
       }
-      #gemini-translate-select-trigger:hover { background-color: var(--border-color); }
-      #gemini-translate-select-arrow {
-        all: initial; display: inline-block; width: 12px; height: 12px; margin-left: 6px;
+      .gemini-translate-select-trigger:hover { background-color: var(--border-color); }
+      .gemini-translate-select-arrow {
+        all: initial; display: inline-block; width: 12px; height: 12px; margin-left: 6px; flex-shrink: 0;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
         background-repeat: no-repeat; background-position: center; background-size: contain;
       }
-      #gemini-translate-btn-wrapper[data-theme="dark"] #gemini-translate-select-arrow {
+      #gemini-translate-btn-wrapper[data-theme="dark"] .gemini-translate-select-arrow {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8aaab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       }
-      #gemini-translate-options-list {
-        all: initial; display: none; position: absolute; top: calc(100% + 6px); left: 0; width: 100%; min-width: 80px;
+      .gemini-translate-options-list {
+        all: initial; display: none; position: absolute; top: calc(100% + 6px); left: 0; width: max-content; min-width: 100%;
         background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: 6px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9147483648; margin: 0; padding: 4px 0; list-style: none; box-sizing: border-box;
       }
-      #gemini-translate-options-list li {
+      .gemini-translate-options-list li {
         all: initial; display: block; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif; font-size: 13px;
         color: var(--text-main); padding: 8px 12px; cursor: pointer; line-height: 1.2; box-sizing: border-box; transition: background-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
       }
-      #gemini-translate-options-list li:hover { background-color: var(--bg-color); }
-      #gemini-translate-options-list li.selected { color: var(--status-color); font-weight: 600; background-color: var(--bg-color); }
+      .gemini-translate-options-list li:hover { background-color: var(--bg-color); }
+      .gemini-translate-options-list li.selected { color: var(--status-color); font-weight: 600; background-color: var(--bg-color); }
       #gemini-translate-btn-inner {
         all: initial; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; 
         background-color: var(--btn-bg); color: var(--btn-text); border: 1px solid rgba(0,0,0,0.05); border-radius: 4px;
@@ -159,9 +160,10 @@ function initShadowDOM() {
   }
 }
 
-chrome.storage.local.get(['themeSelect', 'targetLang', 'fontSizeSelect'], (data) => {
+chrome.storage.local.get(['themeSelect', 'targetLang', 'presetSelect', 'fontSizeSelect'], (data) => {
   if (data.themeSelect) currentTheme = data.themeSelect;
   if (data.targetLang) currentTargetLang = data.targetLang;
+  if (data.presetSelect) currentPreset = data.presetSelect;
   if (data.fontSizeSelect) currentFontSize = data.fontSizeSelect;
 });
 
@@ -175,6 +177,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     if (changes.targetLang) {
       currentTargetLang = changes.targetLang.newValue;
     }
+    if (changes.presetSelect) {
+      currentPreset = changes.presetSelect.newValue;
+    }
     if (changes.fontSizeSelect) {
       currentFontSize = changes.fontSizeSelect.newValue;
       if (resultBox) {
@@ -182,6 +187,18 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       }
     }
   }
+});
+
+// 드래그 팝업의 언어/프리셋 드롭다운 바깥을 클릭하면 열려있는 목록을 닫는다.
+// 각 드롭다운마다 리스너를 새로 추가하지 않고 한 번만 등록해 누적되지 않게 한다.
+document.addEventListener('mousedown', (e) => {
+  if (!shadowRoot) return;
+  shadowRoot.querySelectorAll('.gemini-translate-custom-select').forEach((customSelect) => {
+    if (!e.composedPath().includes(customSelect)) {
+      const list = customSelect.querySelector('.gemini-translate-options-list');
+      if (list) list.style.display = 'none';
+    }
+  });
 });
 
 document.addEventListener('contextmenu', (e) => {
@@ -252,50 +269,41 @@ document.addEventListener('mouseup', (e) => {
   }, 10);
 });
 
-function showButton(x, y) {
-  initShadowDOM();
-  if (translateWrapper) translateWrapper.remove();
-  
-  translateWrapper = document.createElement('div');
-  translateWrapper.id = 'gemini-translate-btn-wrapper';
-  translateWrapper.setAttribute('data-theme', currentTheme);
-  translateWrapper.style.left = `${x + 10}px`;
-  translateWrapper.style.top = `${y + 10}px`;
-  
+// 언어/프리셋 드롭다운처럼 "트리거 + 펼침 목록" 구조인 커스텀 셀렉트를 만든다.
+// items: [{ value, label }], onSelect(value)는 선택이 바뀔 때 호출된다.
+function createDropdown(items, currentValue, onSelect) {
   const customSelect = document.createElement('div');
-  customSelect.id = 'gemini-translate-custom-select';
+  customSelect.className = 'gemini-translate-custom-select';
 
   const selectTrigger = document.createElement('div');
-  selectTrigger.id = 'gemini-translate-select-trigger';
-  
-  const triggerText = document.createTextNode(currentTargetLang);
+  selectTrigger.className = 'gemini-translate-select-trigger';
+
+  const selectedItem = items.find(item => item.value === currentValue) || items[0];
+  const triggerText = document.createTextNode(selectedItem.label);
   selectTrigger.appendChild(triggerText);
-  
+
   const arrowIcon = document.createElement('span');
-  arrowIcon.id = 'gemini-translate-select-arrow';
+  arrowIcon.className = 'gemini-translate-select-arrow';
   selectTrigger.appendChild(arrowIcon);
 
   const optionsList = document.createElement('ul');
-  optionsList.id = 'gemini-translate-options-list';
-  
-  const langs = LANGS;
-  langs.forEach(lang => {
+  optionsList.className = 'gemini-translate-options-list';
+
+  items.forEach(item => {
     const li = document.createElement('li');
-    li.textContent = lang;
-    if (lang === currentTargetLang) li.classList.add('selected');
-    
+    li.textContent = item.label;
+    if (item.value === selectedItem.value) li.classList.add('selected');
+
     li.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      
-      currentTargetLang = lang;
-      chrome.storage.local.set({ targetLang: currentTargetLang });
-      
-      triggerText.nodeValue = lang;
-      optionsList.querySelectorAll('li').forEach(item => item.classList.remove('selected'));
+
+      triggerText.nodeValue = item.label;
+      optionsList.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
       li.classList.add('selected');
-      
       optionsList.style.display = 'none';
+
+      onSelect(item.value);
     });
     optionsList.appendChild(li);
   });
@@ -304,30 +312,58 @@ function showButton(x, y) {
     e.stopPropagation();
     e.preventDefault();
     const isVisible = optionsList.style.display === 'block';
+    // 다른 드롭다운이 열려있다면 먼저 닫는다.
+    shadowRoot.querySelectorAll('.gemini-translate-options-list').forEach((list) => {
+      if (list !== optionsList) list.style.display = 'none';
+    });
     optionsList.style.display = isVisible ? 'none' : 'block';
-  });
-
-  // [수정] composedPath를 이용하여 Shadow DOM 내부 영역 확인
-  document.addEventListener('mousedown', function closeDropdown(e) {
-    if (customSelect && !e.composedPath().includes(customSelect)) {
-      optionsList.style.display = 'none';
-    }
   });
 
   customSelect.appendChild(selectTrigger);
   customSelect.appendChild(optionsList);
+  return customSelect;
+}
+
+function showButton(x, y) {
+  initShadowDOM();
+  if (translateWrapper) translateWrapper.remove();
+
+  translateWrapper = document.createElement('div');
+  translateWrapper.id = 'gemini-translate-btn-wrapper';
+  translateWrapper.setAttribute('data-theme', currentTheme);
+  translateWrapper.style.left = `${x + 10}px`;
+  translateWrapper.style.top = `${y + 10}px`;
+
+  const langSelect = createDropdown(
+    LANGS.map(lang => ({ value: lang, label: lang })),
+    currentTargetLang,
+    (value) => {
+      currentTargetLang = value;
+      chrome.storage.local.set({ targetLang: value });
+    }
+  );
+
+  const presetSelect = createDropdown(
+    Object.entries(PRESET_LABELS).map(([value, label]) => ({ value, label })),
+    currentPreset,
+    (value) => {
+      currentPreset = value;
+      chrome.storage.local.set({ presetSelect: value });
+    }
+  );
 
   const translateBtnInner = document.createElement('button');
   translateBtnInner.id = 'gemini-translate-btn-inner';
   translateBtnInner.textContent = '번역';
-  
+
   translateBtnInner.addEventListener('mousedown', (e) => {
     e.stopPropagation();
     e.preventDefault();
     translateText(x, y, translateBtnInner);
   });
 
-  translateWrapper.appendChild(customSelect);
+  translateWrapper.appendChild(langSelect);
+  translateWrapper.appendChild(presetSelect);
   translateWrapper.appendChild(translateBtnInner);
   
   // [수정] document.body 대신 Shadow Root에 부착
