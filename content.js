@@ -35,8 +35,8 @@ function initShadowDOM() {
         --border-color: #e4e6eb; --btn-bg: #e0f2fe; --btn-hover: #bae6fd; --btn-text: #0369a1;
       }
       #gemini-translate-btn-wrapper[data-theme="dark"], #gemini-translate-result-container[data-theme="dark"] {
-        --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
-        --border-color: #343536; --btn-bg: #0284c7; --btn-hover: #0369a1; --btn-text: #f0f9ff;
+        --bg-color: #22272e; --panel-color: #2d333b; --text-main: #d1d5da; --text-sub: #8b949e;
+        --border-color: #444c56; --btn-bg: #0284c7; --btn-hover: #0369a1; --btn-text: #f0f9ff;
       }
       #gemini-translate-btn-wrapper {
         all: initial; position: absolute; z-index: 9147483647; display: flex; align-items: center; gap: 6px;
@@ -59,7 +59,7 @@ function initShadowDOM() {
         background-repeat: no-repeat; background-position: center; background-size: contain;
       }
       #gemini-translate-btn-wrapper[data-theme="dark"] .gemini-translate-select-arrow {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8aaab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       }
       .gemini-translate-options-list {
         all: initial; display: none; position: absolute; top: calc(100% + 6px); left: 0; width: max-content; min-width: 100%;
@@ -528,8 +528,8 @@ function translateText(x, y, btnElement) {
       if (newWin) {
         const isDark = currentTheme === 'dark';
         const cssVars = isDark ? `
-          --bg-color: #1a1a1b; --panel-color: #272729; --text-main: #d7dadc; --text-sub: #a8aaab;
-          --border-color: #343536; --status-color: #4da3ff;
+          --bg-color: #22272e; --panel-color: #2d333b; --text-main: #d1d5da; --text-sub: #8b949e;
+          --border-color: #444c56; --status-color: #58a6ff;
         ` : `
           --bg-color: #f4f4f7; --panel-color: #ffffff; --text-main: #1a1a1b; --text-sub: #65676b;
           --border-color: #e4e6eb; --status-color: #007bff;
