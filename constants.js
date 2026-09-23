@@ -24,11 +24,9 @@
   };
 
   const PRESET_PROMPTS = {
-    'none': "",
-    'summary': "Summarize the text in exactly 3 bullet points in the target language.",
-    'business': "Use a formal and professional business tone (e.g., 하십시오체 in Korean).",
-    'polite': "Use a standard polite and friendly tone (e.g., 해요체 in Korean).",
-    'informal': "Use a casual and informal tone (e.g., 반말 in Korean)."
+    'none': "Use a plain, informational statement style focused on conveying facts, not conversational politeness (e.g., 해라체/평서체 sentence endings like '~다', '~인가?' in Korean).",
+    'summary': "Identify the core content of the source and present it as a concise summary, including brief supporting reasoning where possible. Aim for roughly 5 lines or fewer, but do not strictly enforce an exact line or sentence count.",
+    'business': "Use a formal, professional tone suitable for a business email (e.g., 하십시오체 sentence endings like '~입니다', '~입니다만', '~입니까?', '~을 부탁드립니다' in Korean)."
   };
 
   const DEFAULT_MODEL = 'gemini-3.8-flash';
