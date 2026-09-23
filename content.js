@@ -91,8 +91,14 @@ function initShadowDOM() {
       #gemini-translate-result-header span { font-family: inherit; color: inherit; font-size: inherit; font-weight: inherit; margin: 0; padding: 0; }
       #gemini-translate-result-content {
         padding: 12px 16px; font-size: var(--content-font-size, 14px); line-height: 1.6; color: var(--text-main);
-        word-break: break-word; overflow-wrap: break-word; white-space: normal; /* pre-wrap 제거 및 normal 적용 */
-        background-color: var(--panel-color); box-sizing: border-box; flex: 1; overflow-y: auto;
+        word-break: break-word; overflow-wrap: anywhere; white-space: normal; /* pre-wrap 제거 및 normal 적용 */
+        background-color: var(--panel-color); box-sizing: border-box; flex: 1; overflow-y: auto; overflow-x: hidden;
+      }
+      /* 번역 결과에 남아있을 수 있는 구식 width 속성이나 예상치 못한 태그가
+         박스 밖으로 삐져나오지 않도록, 모든 하위 요소의 폭을 강제로 제한한다. */
+      #gemini-translate-result-content * {
+        max-width: 100% !important;
+        box-sizing: border-box;
       }
       #gemini-translate-result-content p,
       #gemini-translate-result-content ul,
@@ -505,7 +511,7 @@ function translateText(x, y, btnElement) {
               .container {
                 width: 100%; max-width: 800px; min-width: 0; background-color: var(--panel-color);
                 border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                padding: 30px 40px; box-sizing: border-box; overflow-wrap: anywhere;
+                padding: 30px 40px; box-sizing: border-box; overflow-wrap: anywhere; overflow-x: hidden;
               }
               .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
               .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: anywhere; }
@@ -514,8 +520,14 @@ function translateText(x, y, btnElement) {
                 font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;
                 word-break: break-word; overflow-wrap: anywhere; max-width: 100%; box-sizing: border-box;
               }
-              .content-box img { max-width: 100%; height: auto; }
-              .content-box table { max-width: 100%; display: block; overflow-x: auto; border-collapse: collapse; }
+              /* 번역 결과에 남아있을 수 있는 구식 width 속성이나 예상치 못한 태그가
+                 박스 밖으로 삐져나오지 않도록, 모든 하위 요소의 폭을 강제로 제한한다. */
+              .content-box * {
+                max-width: 100% !important;
+                box-sizing: border-box;
+              }
+              .content-box img { height: auto; }
+              .content-box table { display: block; overflow-x: auto; border-collapse: collapse; }
               .content-box pre { white-space: pre-wrap; overflow-wrap: anywhere; }
               .content-box blockquote, .content-box figure, .content-box dl, .content-box dd {
                 margin: 0 0 8px 0;
