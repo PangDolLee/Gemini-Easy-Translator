@@ -11,7 +11,7 @@ let currentTargetLang = '한국어';
 let currentFontSize = '14px';
 let isUIInteraction = false; 
 
-const { MODEL_NAMES, LANGS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
+const { MODEL_NAMES, LANGS, PRESET_LABELS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
 
 // [수정] Shadow DOM 초기화 및 스타일 격리
 function initShadowDOM() {
@@ -578,11 +578,15 @@ function translateText(x, y, btnElement) {
     } else {
       const prettyModelName = MODEL_NAMES[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
-      
+
       if (useNewTab && newWin) {
+        // 새 탭에서는 어떤 프리셋으로 번역되었는지 알 수 있도록 표시한다
+        // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
+        const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
+        const newTabTitle = presetLabel ? `${title} · ${presetLabel} 프리셋` : title;
         newWin.document.title = "Gemini 번역 결과";
         newWin.document.getElementById('main-container').innerHTML = `
-          <div class="header">${title}</div>
+          <div class="header">${newTabTitle}</div>
           <details>
             <summary class="section-title">원문 보기 (클릭하여 펼치기)</summary>
             <div class="content-box original">${selectedHTML}</div>

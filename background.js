@@ -280,7 +280,7 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       : null;
 
     function recordHistoryAndRespond(translatedText) {
-      sendResult({ result: translatedText, model, lang: targetLang });
+      sendResult({ result: translatedText, model, lang: targetLang, preset: selectedPreset });
 
       const pureOriginalText = stripHtml(textToTranslate) || textToTranslate;
       const pureTranslatedText = stripHtml(translatedText) || translatedText;
