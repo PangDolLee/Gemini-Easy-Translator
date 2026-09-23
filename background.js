@@ -172,18 +172,60 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
+let dnrRuleIdCounter = 1;
+function nextDnrRuleId() {
+  dnrRuleIdCounter = dnrRuleIdCounter >= 200000 ? 1 : dnrRuleIdCounter + 1;
+  return dnrRuleIdCounter;
+}
+
+// pixiv 등 일부 사이트는 Referer 헤더로 핫링크를 차단한다. fetch()의 referrer/
+// referrerPolicy 옵션은 확장 프로그램 서비스워커에서 신뢰할 수 없어(크롬이 무시하거나
+// 재작성하는 경우가 있음), declarativeNetRequest로 실제 전송되는 요청의 Referer
+// 헤더 자체를 이미지 서버 도메인에 한해 일시적으로 덮어쓴다.
+async function withForcedReferer(targetUrl, refererUrl, task) {
+  if (!refererUrl) return task();
+  let hostname;
+  try {
+    hostname = new URL(targetUrl).hostname;
+  } catch (e) {
+    return task();
+  }
+
+  const ruleId = nextDnrRuleId();
+  const rule = {
+    id: ruleId,
+    priority: 1,
+    action: {
+      type: 'modifyHeaders',
+      requestHeaders: [{ header: 'Referer', operation: 'set', value: refererUrl }]
+    },
+    condition: {
+      urlFilter: `||${hostname}^`,
+      resourceTypes: ['xmlhttprequest', 'other', 'image']
+    }
+  };
+
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({ addRules: [rule] });
+  } catch (e) {
+    console.warn('Referer 헤더 규칙 등록 실패, 기본 요청으로 진행합니다:', e.message);
+    return task();
+  }
+
+  try {
+    return await task();
+  } finally {
+    chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [ruleId] }).catch(() => {});
+  }
+}
+
 async function fetchImageAsBase64(url, refererUrl) {
   if (url.startsWith('data:')) {
     const [header, data] = url.split(',');
     const mimeType = header.split(':')[1].split(';')[0];
     return { mimeType, data };
   }
-  // pixiv 등 일부 사이트는 Referer 헤더로 핫링크를 차단하므로,
-  // 이미지를 클릭한 실제 페이지 URL을 리퍼러로 지정해 요청한다.
-  const response = await fetch(url, {
-    referrer: refererUrl || '',
-    referrerPolicy: 'strict-origin-when-cross-origin'
-  });
+  const response = await withForcedReferer(url, refererUrl, () => fetch(url));
   if (!response.ok) {
     const error = new Error(`이미지 요청 실패 (HTTP ${response.status})`);
     error.status = response.status;
