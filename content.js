@@ -515,6 +515,7 @@ function translateText(x, y, btnElement) {
               }
               .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
               .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: anywhere; }
+              .header-sub { font-size: 13px; font-weight: 500; color: var(--text-sub); margin-top: 4px; }
               .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
               .content-box {
                 font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;
@@ -580,13 +581,13 @@ function translateText(x, y, btnElement) {
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
 
       if (useNewTab && newWin) {
-        // 새 탭에서는 어떤 프리셋으로 번역되었는지 알 수 있도록 표시한다
+        // 새 탭에서는 어떤 프리셋으로 번역되었는지 제목과 별도 줄에 작게 표시한다
         // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
         const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
-        const newTabTitle = presetLabel ? `${title} · ${presetLabel} 프리셋` : title;
+        const headerSub = presetLabel ? `<div class="header-sub">${presetLabel} 프리셋 적용</div>` : '';
         newWin.document.title = "Gemini 번역 결과";
         newWin.document.getElementById('main-container').innerHTML = `
-          <div class="header">${newTabTitle}</div>
+          <div class="header">${title}${headerSub}</div>
           <details>
             <summary class="section-title">원문 보기 (클릭하여 펼치기)</summary>
             <div class="content-box original">${selectedHTML}</div>
