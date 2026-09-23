@@ -42,6 +42,16 @@ test('cleanupTranslatedHtml removes other empty block tags (blockquote, li, sect
   assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
 });
 
+test('cleanupTranslatedHtml removes nested empty wrappers (div > h2) on both ends', () => {
+  const input = '<div><h2></h2></div><p>본문</p><div><span></span></div>';
+  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
+});
+
+test('cleanupTranslatedHtml removes leading stray br/nbsp before the first element', () => {
+  const input = '<br>&nbsp;<p>본문</p>';
+  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
+});
+
 test('stripHtml removes tags but keeps text content', () => {
   assert.equal(stripHtml('<p>안녕 <b>하세요</b></p>'), '안녕 하세요');
 });
