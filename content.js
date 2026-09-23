@@ -85,10 +85,11 @@ function initShadowDOM() {
       }
       #gemini-translate-result-header {
         background-color: var(--bg-color); color: var(--text-sub); padding: 8px 12px; font-size: 12px; font-weight: 600;
-        border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;
         line-height: 1.2; box-sizing: border-box; cursor: move; user-select: none; flex-shrink: 0;
       }
-      #gemini-translate-result-header span { font-family: inherit; color: inherit; font-size: inherit; font-weight: inherit; margin: 0; padding: 0; }
+      #gemini-translate-result-header span { font-family: inherit; color: inherit; font-size: inherit; font-weight: inherit; margin: 0; padding: 0; display: block; }
+      #gemini-translate-result-header .preset-label { font-size: 10px; font-weight: 500; margin-top: 3px; opacity: 0.85; }
       #gemini-translate-result-content {
         padding: 12px 16px; font-size: var(--content-font-size, 14px); line-height: 1.6; color: var(--text-main);
         word-break: break-word; overflow-wrap: anywhere; white-space: normal; /* pre-wrap 제거 및 normal 적용 */
@@ -204,7 +205,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       const prettyModelName = MODEL_NAMES[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
-      showResult(request.result, lastMouseX, lastMouseY, title, true);
+      const presetLabel = request.preset && request.preset !== 'none' ? PRESET_LABELS[request.preset] : null;
+      showResult(request.result, lastMouseX, lastMouseY, title, true, presetLabel);
     }
   }
 });
@@ -339,7 +341,7 @@ function showButton(x, y) {
   shadowRoot.appendChild(translateWrapper);
 }
 
-function showResult(textOrHTML, x, y, title = '', isHTML = false) {
+function showResult(textOrHTML, x, y, title = '', isHTML = false, presetLabel = null) {
   initShadowDOM();
   if (resultBox) resultBox.remove(); 
   if (translateWrapper) { 
@@ -358,9 +360,17 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false) {
     const header = document.createElement('div');
     header.id = 'gemini-translate-result-header';
     
+    const titleWrap = document.createElement('div');
     const titleSpan = document.createElement('span');
     titleSpan.textContent = title;
-    header.appendChild(titleSpan);
+    titleWrap.appendChild(titleSpan);
+    if (presetLabel) {
+      const presetSpan = document.createElement('span');
+      presetSpan.className = 'preset-label';
+      presetSpan.textContent = `${presetLabel} 프리셋 적용`;
+      titleWrap.appendChild(presetSpan);
+    }
+    header.appendChild(titleWrap);
 
     const btnWrapper = document.createElement('div');
     btnWrapper.style.display = 'flex';
@@ -579,11 +589,11 @@ function translateText(x, y, btnElement) {
     } else {
       const prettyModelName = MODEL_NAMES[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
+      // 프리셋이 적용된 경우 제목과 별도 줄에 작게 표시한다
+      // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
+      const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
 
       if (useNewTab && newWin) {
-        // 새 탭에서는 어떤 프리셋으로 번역되었는지 제목과 별도 줄에 작게 표시한다
-        // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
-        const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
         const headerSub = presetLabel ? `<div class="header-sub">${presetLabel} 프리셋 적용</div>` : '';
         newWin.document.title = "Gemini 번역 결과";
         newWin.document.getElementById('main-container').innerHTML = `
@@ -596,7 +606,7 @@ function translateText(x, y, btnElement) {
           <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
         `;
       } else {
-        showResult(response.result, x, y, title, true);
+        showResult(response.result, x, y, title, true, presetLabel);
       }
     }
   });
