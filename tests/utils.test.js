@@ -22,6 +22,16 @@ test('cleanupTranslatedHtml returns empty string for falsy input', () => {
   assert.equal(cleanupTranslatedHtml(null), '');
 });
 
+test('cleanupTranslatedHtml strips style attributes but keeps other attributes and tags', () => {
+  const input = '<p style="max-width:200px;margin:0 auto;text-align:center">본문 <a href="https://a.b" style="color:red" class="link">링크</a></p>';
+  assert.equal(cleanupTranslatedHtml(input), '<p>본문 <a href="https://a.b" class="link">링크</a></p>');
+});
+
+test('cleanupTranslatedHtml strips style attributes using single quotes', () => {
+  const input = "<div style='padding:0 40px'>본문</div>";
+  assert.equal(cleanupTranslatedHtml(input), '<div>본문</div>');
+});
+
 test('stripHtml removes tags but keeps text content', () => {
   assert.equal(stripHtml('<p>안녕 <b>하세요</b></p>'), '안녕 하세요');
 });

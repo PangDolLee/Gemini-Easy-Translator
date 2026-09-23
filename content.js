@@ -80,7 +80,7 @@ function initShadowDOM() {
       #gemini-translate-btn-inner:hover { background-color: var(--btn-hover); }
       #gemini-translate-result-container {
         all: initial; position: absolute; z-index: 9147483647; background-color: var(--panel-color); border: 1px solid var(--border-color);
-        border-radius: 8px; width: 320px; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif;
+        border-radius: 8px; width: 380px; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column;
       }
       #gemini-translate-result-header {
