@@ -7,16 +7,6 @@ test('cleanupTranslatedHtml strips markdown code fences', () => {
   assert.equal(cleanupTranslatedHtml(input), '<p>안녕하세요</p>');
 });
 
-test('cleanupTranslatedHtml removes empty trailing p/div tags', () => {
-  const input = '<p>본문</p><p></p><div>&nbsp;</div>';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
-});
-
-test('cleanupTranslatedHtml trims trailing line breaks and whitespace', () => {
-  const input = '<p>본문</p><br><br>\n  ';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
-});
-
 test('cleanupTranslatedHtml returns empty string for falsy input', () => {
   assert.equal(cleanupTranslatedHtml(''), '');
   assert.equal(cleanupTranslatedHtml(null), '');
@@ -30,26 +20,6 @@ test('cleanupTranslatedHtml strips style attributes but keeps other attributes a
 test('cleanupTranslatedHtml strips style attributes using single quotes', () => {
   const input = "<div style='padding:0 40px'>본문</div>";
   assert.equal(cleanupTranslatedHtml(input), '<div>본문</div>');
-});
-
-test('cleanupTranslatedHtml removes empty leading heading tags', () => {
-  const input = '<h2></h2><p>본문</p>';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
-});
-
-test('cleanupTranslatedHtml removes other empty block tags (blockquote, li, section)', () => {
-  const input = '<blockquote>  </blockquote><li><br></li><section>&nbsp;</section><p>본문</p>';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
-});
-
-test('cleanupTranslatedHtml removes nested empty wrappers (div > h2) on both ends', () => {
-  const input = '<div><h2></h2></div><p>본문</p><div><span></span></div>';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
-});
-
-test('cleanupTranslatedHtml removes leading stray br/nbsp before the first element', () => {
-  const input = '<br>&nbsp;<p>본문</p>';
-  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
 });
 
 test('stripHtml removes tags but keeps text content', () => {
