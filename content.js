@@ -101,23 +101,16 @@ function initShadowDOM() {
         max-width: 100% !important;
         box-sizing: border-box;
       }
-      #gemini-translate-result-content p,
-      #gemini-translate-result-content ul,
-      #gemini-translate-result-content ol {
+      /* h1~h6, blockquote, table 등 어떤 태그가 와도 브라우저 기본 여백(UA
+         stylesheet)이 남지 않도록, 직계 자식 전체를 한 번에 리셋한다
+         (예: blockquote의 기본 margin: 1em 40px, h2의 기본 margin: 0.83em 0). */
+      #gemini-translate-result-content > * {
         margin-top: 0; margin-bottom: 8px;
       }
-      #gemini-translate-result-content div {
-        margin: 0;
-      }
-      /* blockquote/figure/dl/pre 등은 브라우저 기본 스타일(UA stylesheet)만으로도
-         좌우 대칭 여백(예: blockquote의 기본 margin: 1em 40px)이 생기므로,
-         style 속성이 없는 원문 태그라도 명시적으로 리셋해야 한다. */
-      #gemini-translate-result-content blockquote,
-      #gemini-translate-result-content figure,
-      #gemini-translate-result-content dl,
-      #gemini-translate-result-content dd,
-      #gemini-translate-result-content pre {
-        margin: 0 0 8px 0;
+      /* blockquote 등 안에 중첩된 p/li도 함께 리셋(직계 자식 규칙은 최상위에만 적용). */
+      #gemini-translate-result-content p,
+      #gemini-translate-result-content li {
+        margin-top: 0; margin-bottom: 8px;
       }
       #gemini-translate-result-content blockquote {
         padding-left: 10px;
