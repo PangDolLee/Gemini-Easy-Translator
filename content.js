@@ -496,14 +496,32 @@ function translateText(x, y, btnElement) {
             <title>번역 진행 중...</title>
             <meta charset="utf-8">
             <style>
-              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
               :root { ${cssVars} }
-              body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
-              .container { width: 100%; max-width: 800px; background-color: var(--panel-color); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 30px 40px; box-sizing: border-box; }
+              body {
+                font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", -apple-system, sans-serif;
+                background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px;
+                display: flex; justify-content: center;
+              }
+              .container {
+                width: 100%; max-width: 800px; min-width: 0; background-color: var(--panel-color);
+                border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                padding: 30px 40px; box-sizing: border-box; overflow-wrap: anywhere;
+              }
               .loading { color: var(--status-color); font-weight: 600; font-size: 16px; text-align: center; padding: 40px 0; }
-              .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; }
+              .header { border-bottom: 2px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; font-size: 20px; font-weight: bold; word-break: break-word; overflow-wrap: anywhere; }
               .section-title { font-size: 13px; font-weight: bold; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; outline: none; }
-              .content-box { font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px; word-break: break-word; overflow-wrap: break-word; }
+              .content-box {
+                font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;
+                word-break: break-word; overflow-wrap: anywhere; max-width: 100%; box-sizing: border-box;
+              }
+              .content-box img { max-width: 100%; height: auto; }
+              .content-box table { max-width: 100%; display: block; overflow-x: auto; border-collapse: collapse; }
+              .content-box pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+              .content-box blockquote, .content-box figure, .content-box dl, .content-box dd {
+                margin: 0 0 8px 0;
+              }
+              .content-box blockquote { padding-left: 10px; border-left: 3px solid var(--border-color); }
+              .content-box ul, .content-box ol { padding-left: 20px; }
               .original { color: var(--text-sub); border-left: 4px solid var(--border-color); padding-left: 16px; margin-left: 4px; margin-bottom: 0; }
               details { margin-bottom: 30px; }
               details summary { cursor: pointer; user-select: none; }
@@ -517,6 +535,9 @@ function translateText(x, y, btnElement) {
           </body>
           </html>
         `);
+        // Google Fonts @import 등 외부 리소스가 없으므로 여기서 즉시 스트림을 닫아
+        // 탭의 로딩 상태(스피너)가 정상적으로 종료되도록 한다.
+        newWin.document.close();
       }
       if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
     } else {
