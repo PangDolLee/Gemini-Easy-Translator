@@ -13,6 +13,54 @@ let isUIInteraction = false;
 
 const { MODEL_NAMES, LANGS, PRESET_LABELS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
 
+// 번역 결과 HTML에서 눈에 보이는 내용이 없는 태그를 제거한다. 정규식으로 태그
+// 이름을 나열해 지우는 방식은 새로운 중첩 패턴(예: <div><h2></h2></div>)마다
+// 다시 깨지므로, 실제 DOM으로 파싱해 "내용이 없는 요소"를 구조와 무관하게
+// 정확히 판별한다.
+// - SELF_MEANINGFUL_TAGS: 해당 태그 자신은 비어 있어도 지우지 않는다(img 등).
+// - br은 단순 줄바꿈일 뿐 "내용"이 아니므로, br만 들어있는 래퍼(예: <li><br></li>)
+//   는 비어 있는 것으로 간주해 지운다. 다만 br 요소 자체는 항상 보존한다.
+const SELF_MEANINGFUL_TAGS = 'img,br,hr,svg,video,audio,iframe,canvas,input,source';
+const CONTENT_TAGS = 'img,hr,svg,video,audio,iframe,canvas,input,source';
+
+function pruneEmptyElements(html) {
+  if (!html) return html;
+  const container = document.createElement('div');
+  container.innerHTML = html;
+
+  function isRemovable(el) {
+    if (el.matches(SELF_MEANINGFUL_TAGS)) return false;
+    if (el.textContent.trim() !== '') return false;
+    return !el.querySelector(CONTENT_TAGS);
+  }
+
+  let removedAny = true;
+  while (removedAny) {
+    removedAny = false;
+    container.querySelectorAll('*').forEach((el) => {
+      if (isRemovable(el)) {
+        el.remove();
+        removedAny = true;
+      }
+    });
+  }
+
+  // 맨 앞/맨 뒤에 남은 순수 공백 텍스트나 단독 <br>도 정리한다(중간의 <br>은
+  // 원문 서식으로 간주해 그대로 둔다).
+  function isEdgeTrimmable(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() === '';
+    return node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR';
+  }
+  while (container.firstChild && isEdgeTrimmable(container.firstChild)) {
+    container.removeChild(container.firstChild);
+  }
+  while (container.lastChild && isEdgeTrimmable(container.lastChild)) {
+    container.removeChild(container.lastChild);
+  }
+
+  return container.innerHTML;
+}
+
 // [수정] Shadow DOM 초기화 및 스타일 격리
 function initShadowDOM() {
   if (!shadowHost) {
@@ -199,7 +247,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const prettyModelName = MODEL_NAMES[request.model] || request.model;
       const title = `${prettyModelName} ${request.lang} 번역 결과`;
       const presetLabel = request.preset && request.preset !== 'none' ? PRESET_LABELS[request.preset] : null;
-      showResult(request.result, lastMouseX, lastMouseY, title, true, presetLabel);
+      showResult(pruneEmptyElements(request.result), lastMouseX, lastMouseY, title, true, presetLabel);
     }
   }
 });
@@ -585,6 +633,7 @@ function translateText(x, y, btnElement) {
       // 프리셋이 적용된 경우 제목과 별도 줄에 작게 표시한다
       // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
       const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
+      const cleanedResult = pruneEmptyElements(response.result);
 
       if (useNewTab && newWin) {
         const headerSub = presetLabel ? `<div class="header-sub">${presetLabel} 프리셋 적용</div>` : '';
@@ -596,10 +645,10 @@ function translateText(x, y, btnElement) {
             <div class="content-box original">${selectedHTML}</div>
           </details>
           <div class="section-title">번역 결과</div>
-          <div class="content-box" style="margin-bottom: 0;">${response.result}</div>
+          <div class="content-box" style="margin-bottom: 0;">${cleanedResult}</div>
         `;
       } else {
-        showResult(response.result, x, y, title, true, presetLabel);
+        showResult(cleanedResult, x, y, title, true, presetLabel);
       }
     }
   });
