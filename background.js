@@ -297,7 +297,7 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
 
     const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${promptLang}.
 CRITICAL RULES:
-1. You MUST preserve all original HTML tags, attributes (like href, class, style), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source.
+1. You MUST preserve all original HTML tags, attributes (like href, class), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source. Do NOT include "style" attributes in the output even if present in the source, since the translated content is rendered in a fixed-width viewer with its own styling.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
 3. Return ONLY the translated HTML content. Do NOT output original text, extra explanations, or markdown code blocks (like \`\`\`html).
 4. ABSOLUTELY DO NOT add any extra line breaks (\n), <br> tags, or empty <p> tags. Maintain the exact same block element structure as the source. Do not arbitrarily wrap unwrapped text in new tags.
