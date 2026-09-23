@@ -22,15 +22,23 @@ const { MODEL_NAMES, LANGS, PRESET_LABELS, LONG_TEXT_THRESHOLD } = GeminiTransla
 //   는 비어 있는 것으로 간주해 지운다. 다만 br 요소 자체는 항상 보존한다.
 const SELF_MEANINGFUL_TAGS = 'img,br,hr,svg,video,audio,iframe,canvas,input,source';
 const CONTENT_TAGS = 'img,hr,svg,video,audio,iframe,canvas,input,source';
+// 일반 공백이 아니라서 String.trim()으로는 지워지지 않는 "보이지 않는" 유니코드
+// 문자(zero-width space 등). 모델이 이런 문자만 채운 요소를 내보내면 실제로는
+// 비어 보이는데도 "내용이 있다"고 잘못 판단해 여백만 차지하는 문제가 생긴다.
+const INVISIBLE_CHARS_RE = /[​‌‍⁠﻿­]/g;
 
 function pruneEmptyElements(html) {
   if (!html) return html;
   const container = document.createElement('div');
   container.innerHTML = html;
 
+  function visibleText(el) {
+    return el.textContent.replace(INVISIBLE_CHARS_RE, '').trim();
+  }
+
   function isRemovable(el) {
     if (el.matches(SELF_MEANINGFUL_TAGS)) return false;
-    if (el.textContent.trim() !== '') return false;
+    if (visibleText(el) !== '') return false;
     return !el.querySelector(CONTENT_TAGS);
   }
 
@@ -48,7 +56,9 @@ function pruneEmptyElements(html) {
   // 맨 앞/맨 뒤에 남은 순수 공백 텍스트나 단독 <br>도 정리한다(중간의 <br>은
   // 원문 서식으로 간주해 그대로 둔다).
   function isEdgeTrimmable(node) {
-    if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() === '';
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent.replace(INVISIBLE_CHARS_RE, '').trim() === '';
+    }
     return node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR';
   }
   while (container.firstChild && isEdgeTrimmable(container.firstChild)) {
