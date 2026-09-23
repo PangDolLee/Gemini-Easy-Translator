@@ -100,7 +100,29 @@ function initShadowDOM() {
         margin-top: 0; margin-bottom: 8px;
       }
       #gemini-translate-result-content div {
-        margin: 0; 
+        margin: 0;
+      }
+      /* blockquote/figure/dl/pre 등은 브라우저 기본 스타일(UA stylesheet)만으로도
+         좌우 대칭 여백(예: blockquote의 기본 margin: 1em 40px)이 생기므로,
+         style 속성이 없는 원문 태그라도 명시적으로 리셋해야 한다. */
+      #gemini-translate-result-content blockquote,
+      #gemini-translate-result-content figure,
+      #gemini-translate-result-content dl,
+      #gemini-translate-result-content dd,
+      #gemini-translate-result-content pre {
+        margin: 0 0 8px 0;
+      }
+      #gemini-translate-result-content blockquote {
+        padding-left: 10px;
+        border-left: 3px solid var(--border-color);
+      }
+      #gemini-translate-result-content ul,
+      #gemini-translate-result-content ol {
+        padding-left: 20px;
+      }
+      #gemini-translate-result-content table {
+        max-width: 100%;
+        border-collapse: collapse;
       }
       #gemini-translate-result-content > *:first-child { margin-top: 0 !important; }
       #gemini-translate-result-content > *:last-child {
