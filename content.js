@@ -143,7 +143,7 @@ function initShadowDOM() {
       }
       #gemini-translate-result-header {
         background-color: var(--bg-color); color: var(--text-sub); padding: 8px 12px; font-size: 12px; font-weight: 600;
-        border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;
+        border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
         line-height: 1.2; box-sizing: border-box; cursor: move; user-select: none; flex-shrink: 0;
       }
       #gemini-translate-result-header span { font-family: inherit; color: inherit; font-size: inherit; font-weight: inherit; margin: 0; padding: 0; display: block; }
