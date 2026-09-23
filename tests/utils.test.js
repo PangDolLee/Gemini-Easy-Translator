@@ -32,6 +32,16 @@ test('cleanupTranslatedHtml strips style attributes using single quotes', () => 
   assert.equal(cleanupTranslatedHtml(input), '<div>본문</div>');
 });
 
+test('cleanupTranslatedHtml removes empty leading heading tags', () => {
+  const input = '<h2></h2><p>본문</p>';
+  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
+});
+
+test('cleanupTranslatedHtml removes other empty block tags (blockquote, li, section)', () => {
+  const input = '<blockquote>  </blockquote><li><br></li><section>&nbsp;</section><p>본문</p>';
+  assert.equal(cleanupTranslatedHtml(input), '<p>본문</p>');
+});
+
 test('stripHtml removes tags but keeps text content', () => {
   assert.equal(stripHtml('<p>안녕 <b>하세요</b></p>'), '안녕 하세요');
 });
