@@ -1,6 +1,6 @@
 importScripts('constants.js', 'utils.js');
 
-const { LANG_MAP, PRESET_PROMPTS, DEFAULT_MODEL, DEFAULT_TARGET_LANG } = self.GeminiTranslatorConstants;
+const { LANG_MAP, BASE_TONE_INSTRUCTION, PRESET_PROMPTS, DEFAULT_MODEL, DEFAULT_TARGET_LANG } = self.GeminiTranslatorConstants;
 const { cleanupTranslatedHtml, stripHtml } = self.GeminiTranslatorUtils;
 
 const REQUEST_TIMEOUT_MS = 30000;
@@ -297,7 +297,22 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       return;
     }
 
-    const prompt = `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${promptLang}.
+    // '핵심 요약'은 원문 구조를 그대로 보존하는 아래 일반 번역 프롬프트와 양립할 수
+    // 없다(요약은 내용을 덜어내는 작업). 전체를 번역한 뒤 요약을 덧붙이는 대신,
+    // 요약문만 출력하는 전용 프롬프트를 사용한다.
+    const prompt = selectedPreset === 'summary'
+      ? `You are a professional translator and summarizer. Read the content enclosed in <source_content> tags and write a concise summary of its core content in ${promptLang}.
+CRITICAL RULES:
+1. Output ONLY the summary. Do NOT translate the source line by line, and do NOT include the original full text or a paragraph-by-paragraph translation before or after the summary.
+2. Identify the core content and include brief supporting reasoning where possible. Aim for roughly 5 lines or fewer, but do not strictly enforce an exact line or sentence count — prioritize covering the core points over hitting an exact length.
+3. Wrap each summary paragraph in a <p> tag. Do NOT use other HTML tags unless the source itself requires them (e.g., a term that must stay linked via <a>).
+4. Do NOT output markdown code blocks or any explanation outside the summary itself.
+5. ${BASE_TONE_INSTRUCTION}${customPrompt}${glossaryInstruction}
+
+<source_content>
+${textToTranslate}
+</source_content>`
+      : `You are a professional HTML content translator. Translate the content enclosed in <source_content> tags into ${promptLang}.
 CRITICAL RULES:
 1. You MUST preserve all original HTML tags, attributes (like href, class), Markdown formatting, line breaks, bullet points, and structures exactly as they appear in the source. Do NOT include "style" attributes in the output even if present in the source, since the translated content is rendered in a fixed-width viewer with its own styling.
 2. Only translate the human-readable text content inside the HTML elements. Do not translate the HTML tags themselves.
