@@ -14,7 +14,6 @@ let isUIInteraction = false;
 
 const { MODEL_NAMES, LANGS, PRESET_LABELS, LONG_TEXT_THRESHOLD } = GeminiTranslatorConstants;
 
-// [수정] Shadow DOM 초기화 및 스타일 격리
 function initShadowDOM() {
   if (!shadowHost) {
     shadowHost = document.createElement('div');
@@ -50,7 +49,7 @@ function initShadowDOM() {
         all: initial; display: flex; justify-content: space-between; align-items: center; font-family: inherit; font-size: 13px;
         font-weight: 500; color: var(--text-main); background-color: var(--bg-color); border: 1px solid var(--border-color);
         border-radius: 4px; padding: 4px 8px; cursor: pointer; line-height: 1.2; box-sizing: border-box; min-width: 72px;
-        transition: background-color 0.2s, border-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
+        transition: background-color 0.2s, border-color 0.2s; white-space: nowrap;
       }
       .gemini-translate-select-trigger:hover { background-color: var(--border-color); }
       .gemini-translate-select-arrow {
@@ -68,7 +67,7 @@ function initShadowDOM() {
       }
       .gemini-translate-options-list li {
         all: initial; display: block; font-family: "Noto Sans KR", "Noto Sans", -apple-system, sans-serif; font-size: 13px;
-        color: var(--text-main); padding: 8px 12px; cursor: pointer; line-height: 1.2; box-sizing: border-box; transition: background-color 0.2s; white-space: nowrap; /* 줄바꿈 방지 추가 */
+        color: var(--text-main); padding: 8px 12px; cursor: pointer; line-height: 1.2; box-sizing: border-box; transition: background-color 0.2s; white-space: nowrap;
       }
       .gemini-translate-options-list li:hover { background-color: var(--bg-color); }
       .gemini-translate-options-list li.selected { color: var(--status-color); font-weight: 600; background-color: var(--bg-color); }
@@ -93,22 +92,16 @@ function initShadowDOM() {
       #gemini-translate-result-header .preset-label { font-size: 10px; font-weight: 500; margin-top: 3px; opacity: 0.85; }
       #gemini-translate-result-content {
         padding: 12px 16px; font-size: var(--content-font-size, 14px); line-height: 1.6; color: var(--text-main);
-        word-break: break-word; overflow-wrap: anywhere; white-space: normal; /* pre-wrap 제거 및 normal 적용 */
+        word-break: break-word; overflow-wrap: anywhere; white-space: normal;
         background-color: var(--panel-color); box-sizing: border-box; flex: 1; overflow-y: auto; overflow-x: hidden;
       }
-      /* 번역 결과에 남아있을 수 있는 구식 width 속성이나 예상치 못한 태그가
-         박스 밖으로 삐져나오지 않도록, 모든 하위 요소의 폭을 강제로 제한한다. */
       #gemini-translate-result-content * {
         max-width: 100% !important;
         box-sizing: border-box;
       }
-      /* h1~h6, blockquote, table 등 어떤 태그가 와도 브라우저 기본 여백(UA
-         stylesheet)이 남지 않도록, 직계 자식 전체를 한 번에 리셋한다
-         (예: blockquote의 기본 margin: 1em 40px, h2의 기본 margin: 0.83em 0). */
       #gemini-translate-result-content > * {
         margin-top: 0; margin-bottom: 8px;
       }
-      /* blockquote 등 안에 중첩된 p/li도 함께 리셋(직계 자식 규칙은 최상위에만 적용). */
       #gemini-translate-result-content p,
       #gemini-translate-result-content li {
         margin-top: 0; margin-bottom: 8px;
@@ -189,8 +182,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
 });
 
-// 드래그 팝업의 언어/프리셋 드롭다운 바깥을 클릭하면 열려있는 목록을 닫는다.
-// 각 드롭다운마다 리스너를 새로 추가하지 않고 한 번만 등록해 누적되지 않게 한다.
 document.addEventListener('mousedown', (e) => {
   if (!shadowRoot) return;
   shadowRoot.querySelectorAll('.gemini-translate-custom-select').forEach((customSelect) => {
@@ -221,7 +212,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// [수정] Shadow DOM 요소를 타겟으로 하는 e.composedPath() 사용
 document.addEventListener('mousedown', (e) => {
   const path = e.composedPath();
   const inWrapper = translateWrapper && path.includes(translateWrapper);
@@ -269,8 +259,6 @@ document.addEventListener('mouseup', (e) => {
   }, 10);
 });
 
-// 언어/프리셋 드롭다운처럼 "트리거 + 펼침 목록" 구조인 커스텀 셀렉트를 만든다.
-// items: [{ value, label }], onSelect(value)는 선택이 바뀔 때 호출된다.
 function createDropdown(items, currentValue, onSelect) {
   const customSelect = document.createElement('div');
   customSelect.className = 'gemini-translate-custom-select';
@@ -312,7 +300,6 @@ function createDropdown(items, currentValue, onSelect) {
     e.stopPropagation();
     e.preventDefault();
     const isVisible = optionsList.style.display === 'block';
-    // 다른 드롭다운이 열려있다면 먼저 닫는다.
     shadowRoot.querySelectorAll('.gemini-translate-options-list').forEach((list) => {
       if (list !== optionsList) list.style.display = 'none';
     });
@@ -365,8 +352,7 @@ function showButton(x, y) {
   translateWrapper.appendChild(langSelect);
   translateWrapper.appendChild(presetSelect);
   translateWrapper.appendChild(translateBtnInner);
-  
-  // [수정] document.body 대신 Shadow Root에 부착
+
   shadowRoot.appendChild(translateWrapper);
 }
 
@@ -513,7 +499,6 @@ function showResult(textOrHTML, x, y, title = '', isHTML = false, presetLabel = 
     document.removeEventListener('mouseup', onResizeMouseUp);
   }
 
-  // [수정] document.body 대신 Shadow Root에 부착
   shadowRoot.appendChild(resultBox);
 }
 
@@ -560,8 +545,6 @@ function translateText(x, y, btnElement) {
                 font-size: ${currentFontSize}; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;
                 word-break: break-word; overflow-wrap: anywhere; max-width: 100%; box-sizing: border-box;
               }
-              /* 번역 결과에 남아있을 수 있는 구식 width 속성이나 예상치 못한 태그가
-                 박스 밖으로 삐져나오지 않도록, 모든 하위 요소의 폭을 강제로 제한한다. */
               .content-box * {
                 max-width: 100% !important;
                 box-sizing: border-box;
@@ -587,8 +570,6 @@ function translateText(x, y, btnElement) {
           </body>
           </html>
         `);
-        // Google Fonts @import 등 외부 리소스가 없으므로 여기서 즉시 스트림을 닫아
-        // 탭의 로딩 상태(스피너)가 정상적으로 종료되도록 한다.
         newWin.document.close();
       }
       if (translateWrapper) { translateWrapper.remove(); translateWrapper = null; }
@@ -618,8 +599,6 @@ function translateText(x, y, btnElement) {
     } else {
       const prettyModelName = MODEL_NAMES[response.model] || response.model;
       const title = `${prettyModelName} ${response.lang} 번역 결과`;
-      // 프리셋이 적용된 경우 제목과 별도 줄에 작게 표시한다
-      // (설정 없음(기본)은 별도 표시 없이 기본값으로 취급).
       const presetLabel = response.preset && response.preset !== 'none' ? PRESET_LABELS[response.preset] : null;
 
       if (useNewTab && newWin) {
