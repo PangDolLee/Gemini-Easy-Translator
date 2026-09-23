@@ -81,8 +81,6 @@ async function fetchWithRetry(url, options) {
 async function requestGeminiContent(model, apiKey, parts, useThinkingConfig) {
   const body = { contents: [{ parts }] };
   if (useThinkingConfig) {
-    // 번역/OCR은 다단계 추론이 필요 없는 작업이므로 thinking을 꺼서
-    // Flash 모델에서 불필요하게 응답이 지연되는 것을 방지한다.
     body.generationConfig = { thinkingConfig: { thinkingBudget: 0 } };
   }
 
@@ -105,9 +103,7 @@ async function requestGeminiContent(model, apiKey, parts, useThinkingConfig) {
     try {
       const errBody = await response.json();
       if (errBody?.error?.message) message = errBody.error.message;
-    } catch (e) {
-      // 응답 본문이 JSON이 아닌 경우 기본 메시지를 사용
-    }
+    } catch (e) {}
     const error = new Error(message);
     error.status = response.status;
     throw error;
@@ -127,8 +123,6 @@ async function callGeminiApi(model, apiKey, parts) {
   try {
     return await requestGeminiContent(model, apiKey, parts, true);
   } catch (error) {
-    // 일부 모델이 thinkingConfig 필드를 지원하지 않아 400을 반환하는 경우에만
-    // 해당 옵션 없이 한 번 더 시도한다(속도 최적화가 요청 자체를 막지 않도록).
     if (error.status === 400) {
       return requestGeminiContent(model, apiKey, parts, false);
     }
@@ -169,10 +163,6 @@ function nextDnrRuleId() {
   return dnrRuleIdCounter;
 }
 
-// pixiv 등 일부 사이트는 Referer 헤더로 핫링크를 차단한다. fetch()의 referrer/
-// referrerPolicy 옵션은 확장 프로그램 서비스워커에서 신뢰할 수 없어(크롬이 무시하거나
-// 재작성하는 경우가 있음), declarativeNetRequest로 실제 전송되는 요청의 Referer
-// 헤더 자체를 이미지 서버 도메인에 한해 일시적으로 덮어쓴다.
 async function withForcedReferer(targetUrl, refererUrl, task) {
   if (!refererUrl) return task();
   let hostname;
@@ -297,9 +287,6 @@ function processTranslation(textToTranslate, tabId, isContextMenu, sendResponseC
       return;
     }
 
-    // '핵심 요약'은 원문 구조를 그대로 보존하는 아래 일반 번역 프롬프트와 양립할 수
-    // 없다(요약은 내용을 덜어내는 작업). 전체를 번역한 뒤 요약을 덧붙이는 대신,
-    // 요약문만 출력하는 전용 프롬프트를 사용한다.
     const prompt = selectedPreset === 'summary'
       ? `You are a professional translator and summarizer. Read the content enclosed in <source_content> tags and write a concise summary of its core content in ${promptLang}.
 CRITICAL RULES:

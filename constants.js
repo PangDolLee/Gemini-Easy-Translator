@@ -8,9 +8,6 @@
 
   const LANGS = Object.keys(LANG_MAP);
 
-  // 2026-09 기준 Gemini API 모델 목록. gemini-2.5-* 계열은 2026-10-16(Gemini
-  // Developer API 기준) 지원 종료가 예고된 적이 있어(공지가 번복된 전례가 있음)
-  // 완전히 제거하지 않고 라벨로 안내만 남긴다.
   const MODEL_NAMES = {
     'gemini-3.8-flash': 'Gemini 3.8 Flash (최신)',
     'gemini-3.7-flash': 'Gemini 3.7 Flash',
@@ -23,13 +20,8 @@
     'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite (지원 종료 예정)'
   };
 
-  // 정보 전달에 초점을 맞춘 평서체/해라체 지시. '핵심 요약' 프리셋도 이 어투를
-  // 그대로 따르고 요약 지시만 추가되며, '비즈니스 메일'만 별도의 어투로 대체된다.
   const BASE_TONE_INSTRUCTION = "Use a plain, informational statement style focused on conveying facts, not conversational politeness (e.g., 해라체/평서체 sentence endings like '~다', '~인가?' in Korean).";
 
-  // 'summary'는 원문 구조를 그대로 보존하는 일반 번역 프롬프트와 양립할 수 없어
-  // (요약은 내용을 덜어내는 작업이므로) background.js에서 별도의 전용 프롬프트를
-  // 사용한다. 여기서는 라벨/톤 참조용으로만 남겨둔다.
   const PRESET_PROMPTS = {
     'none': BASE_TONE_INSTRUCTION,
     'business': "Use a formal, professional tone suitable for a business email (e.g., 하십시오체 sentence endings like '~입니다', '~입니다만', '~입니까?', '~을 부탁드립니다' in Korean)."
